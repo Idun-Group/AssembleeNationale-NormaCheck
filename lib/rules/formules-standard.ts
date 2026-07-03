@@ -47,10 +47,14 @@ export const FORMULES_STANDARD: Regle[] = [
     exempleKo: "le montant maximum de l'aide",
     exempleOk: "le montant maximal de l'aide",
     detecteur: detecteurRegex(
-      new RegExp(`${G}([A-Za-zÀ-ÿ]+) maximums?${D}`, "g"),
+      new RegExp(
+        `${G}(montants?|délais?|âges?|taux|seuils?|nombres?|effectifs?|plafonds?|prix|salaires?|durées?) maximums?${D}`,
+        "gi",
+      ),
       {
         message: "On préfère « maximal » à « maximum » employé comme adjectif.",
-        suggestion: (m) => `${m[1]} maximal`,
+        suggestion: (m) =>
+          `${m[1]} ${/s$/.test(m[0]) ? "maximaux" : "maximal"}`,
       },
     ),
   }),

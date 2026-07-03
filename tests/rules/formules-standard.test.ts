@@ -45,4 +45,19 @@ describe("formules standard §9.2", () => {
       .toBe("représentant de l'État dans le département");
     expect(detecte("R9.2-13", "la préfecture")).toHaveLength(0);
   });
+
+  describe("R9.2-03 ne doit pas capturer l'idiome « au maximum »", () => {
+    it("ignore « au maximum » (idiome, nom correct)", () => {
+      expect(detecte("R9.2-03", "il perçoit la somme au maximum")).toHaveLength(0);
+    });
+    it("ignore « le maximum autorisé »", () => {
+      expect(detecte("R9.2-03", "le maximum autorisé")).toHaveLength(0);
+    });
+    it("détecte toujours l'emploi adjectival « délai maximum »", () => {
+      expect(detecte("R9.2-03", "un délai maximum de trois mois").length).toBeGreaterThanOrEqual(1);
+    });
+    it("détecte toujours « montant maximum »", () => {
+      expect(detecte("R9.2-03", "le montant maximum de l'aide").length).toBeGreaterThanOrEqual(1);
+    });
+  });
 });
