@@ -1,10 +1,12 @@
 import type { Famille, Regle } from "./types";
+import { FORMULES_STANDARD } from "./formules-standard";
 export * from "./types";
 
 // Les tableaux par famille sont ajoutés par les tâches suivantes :
-// import { FORMULES_STANDARD } from "./formules-standard"; etc.
+// import { TYPOGRAPHIE } from "./typographie"; etc.
 export const REGLES: Regle[] = [
-  // ...FORMULES_STANDARD, ...TYPOGRAPHIE, ...REFERENCES, ...STRUCTURELLES, ...REGLES_LLM
+  ...FORMULES_STANDARD,
+  // ...TYPOGRAPHIE, ...REFERENCES, ...STRUCTURELLES, ...REGLES_LLM
 ];
 
 export const FAMILLES: Famille[] = [
