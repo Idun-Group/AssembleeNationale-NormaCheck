@@ -1,0 +1,50 @@
+import { describe, it, expect } from "vitest";
+import { TYPOGRAPHIE } from "@/lib/rules/typographie";
+
+function detecte(id: string, texte: string) {
+  const r = TYPOGRAPHIE.find((x) => x.id === id)!;
+  return r.detecteur!(texte);
+}
+
+describe("typographie §7.2", () => {
+  it("R7.2-01 détecte les parenthèses", () => {
+    const r = detecte("R7.2-01", "la commission (créée en 2020) statue");
+    expect(r).toHaveLength(1);
+    expect(r[0].extrait).toBe("(créée en 2020)");
+  });
+  it("R7.2-01 ignore un texte sans parenthèses", () => {
+    expect(detecte("R7.2-01", "la commission statue")).toHaveLength(0);
+  });
+  it("R7.2-02 détecte un sigle", () => {
+    expect(detecte("R7.2-02", "la CNIL est consultée").length).toBe(1);
+  });
+  it("R7.2-02 ignore les chiffres romains et exceptions", () => {
+    expect(detecte("R7.2-02", "le titre III du livre VIII")).toHaveLength(0);
+    expect(detecte("R7.2-02", "l'établissement public OSEO")).toHaveLength(0);
+  });
+  it("R7.2-03 détecte les guillemets anglais", () => {
+    expect(detecte("R7.2-03", 'les mots : "deux ans" sont supprimés').length).toBeGreaterThan(0);
+  });
+  it("R7.2-04 détecte Etat sans accent", () => {
+    const r = detecte("R7.2-04", "un Etat membre");
+    expect(r[0].suggestion).toBe("État");
+    expect(detecte("R7.2-04", "un État membre")).toHaveLength(0);
+  });
+  it("R7.2-04 détecte « A la » en début de phrase", () => {
+    expect(detecte("R7.2-04", "A la première phrase, le mot est supprimé")[0].suggestion).toBe("À la");
+    expect(detecte("R7.2-04", "A. – L'article 3 est abrogé")).toHaveLength(0);
+  });
+  it("R7.2-05 détecte un nombre à points", () => {
+    const r = detecte("R7.2-05", "un montant de 1.205.632 €");
+    expect(r[0].suggestion).toBe("1 205 632");
+    expect(detecte("R7.2-05", "un montant de 1 205 632 €")).toHaveLength(0);
+  });
+  it("R7.2-06 signale les nombres en chiffres pour les durées/personnes", () => {
+    expect(detecte("R7.2-06", "une peine de 3 ans").length).toBe(1);
+    expect(detecte("R7.2-06", "100 000 habitants")).toHaveLength(0); // exception habitants
+  });
+  it("R7.2-07 signale les locutions latines", () => {
+    expect(detecte("R7.2-07", "les dispositions in fine du texte").length).toBe(1);
+    expect(detecte("R7.2-07", "la finalité du texte")).toHaveLength(0);
+  });
+});
