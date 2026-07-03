@@ -4,19 +4,19 @@
 
 **Goal:** Application Next.js qui analyse un texte législatif contre les règles du guide de légistique (moteur déterministe + LLM), avec surlignage interactif, correction 1-clic, score de conformité et glossaire — spec : `docs/superpowers/specs/2026-07-03-normacheck-mvp-design.md`.
 
-**Architecture:** Catalogue de règles unique (`lib/rules/`) alimentant à la fois le moteur de détection, le glossaire et le prompt LLM. Moteur déterministe pur TypeScript exécuté côté client (instantané). Couche LLM (Claude `claude-sonnet-5`, structured outputs) via API route. UI 3 écrans (Analyse, Résultat, Glossaire) aux couleurs du site du hackathon.
+**Architecture:** Catalogue de règles unique (`lib/rules/`) alimentant à la fois le moteur de détection, le glossaire et le prompt LLM. Moteur déterministe pur TypeScript exécuté côté client (instantané). Couche LLM via API route qui invoque la CLI `claude` locale (plan Claude, pas de clé API) — interface isolée dans `lib/llm/executer.ts` pour basculer sur l'API Anthropic plus tard. UI 3 écrans (Analyse, Résultat, Glossaire) aux couleurs du site du hackathon.
 
-**Tech Stack:** Next.js 15 (App Router) + TypeScript, Tailwind CSS v4, shadcn/ui, `@anthropic-ai/sdk` + zod, mammoth (docx), pdf-parse (pdf), Vitest, Playwright.
+**Tech Stack:** Next.js 15 (App Router) + TypeScript, Tailwind CSS v4, shadcn/ui, CLI `claude` locale (plan Claude, via child_process) + zod, mammoth (docx), pdf-parse (pdf), Vitest, Playwright.
 
 ## Global Constraints
 
 - Langue de l'UI et du code métier : **français** (identifiants français : `analyser`, `Finding`, `Regle`, `severite`…).
-- Modèle LLM : `claude-sonnet-5` exactement, via `client.messages.parse` + `zodOutputFormat`. Jamais de `temperature`/`top_p` (400 sur ce modèle). Clé dans `ANTHROPIC_API_KEY` (`.env.local`, jamais commitée).
+- Couche LLM : CLI `claude` locale invoquée en mode headless — `claude -p --output-format json --dangerously-skip-permissions --model sonnet --strict-mcp-config`, prompt passé par stdin, cwd = dossier temporaire (pas le repo). Aucune clé API, aucune dépendance `@anthropic-ai/sdk`. TOUT l'appel passe par `executerLlm(prompt): Promise<string>` dans `lib/llm/executer.ts` — unique fichier à réécrire pour la future bascule API.
+- L'app doit fonctionner sans CLI `claude` installée/authentifiée (mode déterministe seul + badge « analyse approfondie indisponible »).
 - Sévérités : `"enfreinte" | "a_revoir" | "suggestion"`. Les findings LLM ne sont JAMAIS `"enfreinte"`.
 - DA (extraite du site du hackathon) : primary `#233f6b`, accent/destructive `#e1000f`, menthe `#63e0be`, indigo `#2a327d`, fonts **Lora** (titres) + **Lato** (UI). Dark mode inclus. Assets dans `docs/superpowers/specs/assets/` → copier vers `public/`.
 - Un finding LLM dont la citation est introuvable dans le texte a `span: null` — jamais de surlignage faux.
 - En cas de chevauchement de spans, le finding déterministe gagne.
-- L'app doit fonctionner sans clé API (mode déterministe seul + badge).
 - Commits fréquents, messages en anglais, suffixe `Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>`.
 - Tests moteur : Vitest (`npm run test`). E2E : Playwright (`npm run e2e`).
 
@@ -47,6 +47,9 @@ lib/engine/
 lib/llm/
   schema.ts                  # zod schema de la réponse LLM
   prompt.ts                  # construirePromptSysteme() depuis le catalogue
+  executer.ts                # executerLlm(prompt) -> spawn de la CLI claude (SEUL point de contact LLM)
+  extraire-json.ts           # extraireJson(brut) : JSON depuis une réponse texte (fences, préambules)
+  convertir.ts               # convertirFindingsLlm(bruts, texte) : ancrage + garde-fous
 lib/import/
   normaliser.ts              # normalisation texte (fins de ligne, espaces)
 data/exemples/index.ts       # 3 textes de démo + findings attendus (golden)
@@ -87,7 +90,7 @@ Note : le repo contient déjà README.md/LICENSE/docs — si create-next-app ref
 - [ ] **Step 2: Installer les dépendances du projet**
 
 ```bash
-npm install @anthropic-ai/sdk zod mammoth pdf-parse next-themes
+npm install zod mammoth pdf-parse next-themes
 npm install -D vitest @vitest/coverage-v8 @playwright/test
 ```
 
@@ -243,7 +246,7 @@ export default defineConfig({
 ```
 
 Ajouter dans `package.json` → scripts : `"test": "vitest run"`, `"test:watch": "vitest"`, `"e2e": "playwright test"`.
-Créer `.env.example` avec `ANTHROPIC_API_KEY=sk-ant-...` et vérifier que `.gitignore` couvre `.env*`.
+Pas de `.env` nécessaire (la CLI `claude` utilise l'authentification locale). Vérifier simplement que `.gitignore` couvre `.env*` pour la future bascule API.
 
 - [ ] **Step 8: Vérifier le build et committer**
 
@@ -1399,19 +1402,21 @@ describe("golden tests des exemples", () => {
 
 ---
 
-### Task 11: Couche LLM (Claude) + API route
+### Task 11: Couche LLM via CLI `claude` locale + API route
 
 **Files:**
-- Create: `lib/llm/schema.ts`, `lib/llm/prompt.ts`, `lib/llm/convertir.ts`, `app/api/analyze-llm/route.ts`
-- Test: `tests/llm/convertir.test.ts`, `tests/llm/prompt.test.ts`
+- Create: `lib/llm/schema.ts`, `lib/llm/prompt.ts`, `lib/llm/extraire-json.ts`, `lib/llm/executer.ts`, `lib/llm/convertir.ts`, `app/api/analyze-llm/route.ts`
+- Test: `tests/llm/extraire-json.test.ts`, `tests/llm/convertir.test.ts`, `tests/llm/prompt.test.ts`
 
 **Interfaces:**
 - Consumes: `REGLES` (règles avec champ `llm`), `ancrer` (Task 9)
 - Produces:
   - `schema.ts` : `ReponseLlmSchema` (zod) → `{ findings: Array<{ ruleId: string; citation: string; message: string; suggestion: string | null }> }`
-  - `prompt.ts` : `construirePromptSysteme(): string`
-  - `convertir.ts` : `convertirFindingsLlm(bruts, texte): Finding[]` (ancrage + garde-fous, pur/testable)
-  - Route POST `/api/analyze-llm` : body `{ texte: string }` → `{ findings: Finding[] }` ; 503 `{ erreur: "cle_absente" }` si pas de clé ; 500 `{ erreur: "llm_indisponible" }` sur échec API.
+  - `prompt.ts` : `construirePrompt(texte: string): string` (consignes + règles + texte, un seul prompt)
+  - `extraire-json.ts` : `extraireJson(brut: string): unknown` (tolère fences markdown et préambule)
+  - `executer.ts` : `executerLlm(prompt: string): Promise<string>` — spawn de la CLI `claude`. **Seul fichier qui saura un jour parler à l'API Anthropic.**
+  - `convertir.ts` : `convertirFindingsLlm(bruts, texte): Finding[]` (ancrage + garde-fous)
+  - Route POST `/api/analyze-llm` : body `{ texte }` → `{ findings: Finding[] }` ; 503 `{ erreur: "cli_indisponible" }` si la CLI est absente/non authentifiée/en échec ; 502 `{ erreur: "reponse_invalide" }` si le JSON ne valide pas.
 
 - [ ] **Step 1: `lib/llm/schema.ts`**
 
@@ -1432,29 +1437,70 @@ export const ReponseLlmSchema = z.object({
 export type ReponseLlm = z.infer<typeof ReponseLlmSchema>;
 ```
 
-- [ ] **Step 2: Test prompt** — `tests/llm/prompt.test.ts`
+- [ ] **Step 2: Tests qui échouent** — `tests/llm/prompt.test.ts` et `tests/llm/extraire-json.test.ts`
 
 ```ts
+// tests/llm/prompt.test.ts
 import { describe, it, expect } from "vitest";
-import { construirePromptSysteme } from "@/lib/llm/prompt";
+import { construirePrompt } from "@/lib/llm/prompt";
 
-describe("construirePromptSysteme", () => {
-  const p = construirePromptSysteme();
+describe("construirePrompt", () => {
+  const p = construirePrompt("Texte de démonstration à analyser.");
   it("liste toutes les règles LLM avec leur id", () => {
     for (const id of ["RL-01", "RL-02", "RL-03", "RL-04", "RL-05"]) expect(p).toContain(id);
   });
-  it("exige des citations exactes", () => {
+  it("exige des citations exactes et du JSON seul", () => {
     expect(p.toLowerCase()).toContain("verbatim");
+    expect(p.toLowerCase()).toContain("uniquement");
+    expect(p).toContain('"findings"');
+  });
+  it("contient le texte à analyser", () => {
+    expect(p).toContain("Texte de démonstration");
   });
 });
 ```
 
-- [ ] **Step 3: Implémenter `lib/llm/prompt.ts`**
+```ts
+// tests/llm/extraire-json.test.ts
+import { describe, it, expect } from "vitest";
+import { extraireJson } from "@/lib/llm/extraire-json";
+
+describe("extraireJson", () => {
+  it("parse du JSON nu", () => {
+    expect(extraireJson('{"findings":[]}')).toEqual({ findings: [] });
+  });
+  it("parse du JSON dans un fence markdown", () => {
+    expect(extraireJson('Voici :\n```json\n{"findings":[]}\n```')).toEqual({ findings: [] });
+  });
+  it("parse du JSON précédé de texte", () => {
+    expect(extraireJson('Analyse terminée. {"findings":[{"ruleId":"RL-01","citation":"x","message":"m","suggestion":null}]}'))
+      .toMatchObject({ findings: [{ ruleId: "RL-01" }] });
+  });
+  it("lève une erreur si aucun JSON", () => {
+    expect(() => extraireJson("aucun objet ici")).toThrow();
+  });
+});
+```
+
+- [ ] **Step 3: Vérifier l'échec, puis implémenter `lib/llm/extraire-json.ts`**
+
+```ts
+export function extraireJson(brut: string): unknown {
+  const fence = brut.match(/```(?:json)?\s*([\s\S]*?)```/);
+  const candidat = fence ? fence[1] : brut;
+  const debut = candidat.indexOf("{");
+  const fin = candidat.lastIndexOf("}");
+  if (debut === -1 || fin <= debut) throw new Error("aucun JSON dans la réponse");
+  return JSON.parse(candidat.slice(debut, fin + 1));
+}
+```
+
+- [ ] **Step 4: Implémenter `lib/llm/prompt.ts`**
 
 ```ts
 import { REGLES } from "@/lib/rules";
 
-export function construirePromptSysteme(): string {
+export function construirePrompt(texte: string): string {
   const regles = REGLES.filter((r) => r.llm)
     .map((r) => `- [${r.id}] ${r.titre} (${r.ref})\n  ${r.explication}\n  Consigne : ${r.llm}`)
     .join("\n");
@@ -1468,11 +1514,66 @@ Contraintes impératives :
 - "message" explique le problème en une ou deux phrases, en français, de façon pédagogique.
 - "suggestion" propose une réécriture du passage cité, ou null si aucune réécriture sûre n'est possible.
 - Ne signale rien qui relève de fautes purement mécaniques (formules standard, typographie) : un autre analyseur s'en charge.
-- En l'absence de problème, retourne findings: [].`;
+- En l'absence de problème, retourne {"findings": []}.
+
+Réponds UNIQUEMENT avec un objet JSON de la forme {"findings": [{"ruleId": "...", "citation": "...", "message": "...", "suggestion": "... ou null"}]} — aucun texte avant ou après, pas de bloc de code.
+
+Texte à analyser :
+
+${texte}`;
 }
 ```
 
-- [ ] **Step 4: Test conversion/ancrage** — `tests/llm/convertir.test.ts`
+- [ ] **Step 5: Implémenter `lib/llm/executer.ts` — le SEUL point de contact LLM**
+
+```ts
+import { execFile } from "node:child_process";
+import os from "node:os";
+
+/**
+ * Exécute la CLI `claude` locale en mode headless (couverte par le plan Claude).
+ * Bascule API ultérieure : réécrire uniquement cette fonction.
+ */
+export function executerLlm(prompt: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const child = execFile(
+      "claude",
+      [
+        "-p",
+        "--output-format", "json",
+        "--dangerously-skip-permissions",
+        "--model", "sonnet",
+        "--strict-mcp-config", // n'active aucun serveur MCP : démarrage rapide
+      ],
+      {
+        cwd: os.tmpdir(),      // hors du repo : pas de CLAUDE.md ni de contexte projet
+        timeout: 120_000,
+        maxBuffer: 10 * 1024 * 1024,
+        env: { ...process.env, CLAUDE_CODE_DISABLE_TELEMETRY: "1" },
+      },
+      (err, stdout) => {
+        if (err) return reject(err);
+        try {
+          // --output-format json enveloppe la réponse : { type: "result", result: "<texte>", ... }
+          const enveloppe = JSON.parse(stdout) as { result?: string; is_error?: boolean };
+          if (enveloppe.is_error || typeof enveloppe.result !== "string") {
+            return reject(new Error("réponse CLI en erreur"));
+          }
+          resolve(enveloppe.result);
+        } catch (e) {
+          reject(e);
+        }
+      },
+    );
+    child.stdin?.write(prompt);
+    child.stdin?.end();
+  });
+}
+```
+
+Vérifier au premier essai réel : `echo "Réponds {\"ok\":true}" | claude -p --output-format json --model sonnet --strict-mcp-config` → si un flag n'existe pas dans la version installée (`claude --help`), l'adapter (p. ex. retirer `--strict-mcp-config`).
+
+- [ ] **Step 6: Test conversion/ancrage** — `tests/llm/convertir.test.ts`
 
 ```ts
 import { describe, it, expect } from "vitest";
@@ -1513,7 +1614,7 @@ describe("convertirFindingsLlm", () => {
 });
 ```
 
-- [ ] **Step 5: Implémenter `lib/llm/convertir.ts`**
+- [ ] **Step 7: Implémenter `lib/llm/convertir.ts`**
 
 ```ts
 import { regleParId } from "@/lib/rules";
@@ -1542,62 +1643,56 @@ export function convertirFindingsLlm(bruts: ReponseLlm["findings"], texte: strin
 }
 ```
 
-- [ ] **Step 6: Vérifier** — `npm run test` → PASS.
+- [ ] **Step 8: Vérifier** — `npm run test` → PASS.
 
-- [ ] **Step 7: Implémenter `app/api/analyze-llm/route.ts`**
+- [ ] **Step 9: Implémenter `app/api/analyze-llm/route.ts`**
 
 ```ts
 import { NextRequest, NextResponse } from "next/server";
-import Anthropic from "@anthropic-ai/sdk";
-import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { ReponseLlmSchema } from "@/lib/llm/schema";
-import { construirePromptSysteme } from "@/lib/llm/prompt";
+import { construirePrompt } from "@/lib/llm/prompt";
+import { executerLlm } from "@/lib/llm/executer";
+import { extraireJson } from "@/lib/llm/extraire-json";
 import { convertirFindingsLlm } from "@/lib/llm/convertir";
 
-export const maxDuration = 60;
+export const runtime = "nodejs";
+export const maxDuration = 180;
 
 export async function POST(req: NextRequest) {
   const { texte } = (await req.json()) as { texte?: string };
   if (!texte || texte.length < 20) {
     return NextResponse.json({ erreur: "texte_invalide" }, { status: 400 });
   }
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return NextResponse.json({ erreur: "cle_absente" }, { status: 503 });
+  let brut: string;
+  try {
+    brut = await executerLlm(construirePrompt(texte.slice(0, 30000)));
+  } catch {
+    // CLI absente (ENOENT), non authentifiée, timeout… -> mode dégradé côté client
+    return NextResponse.json({ erreur: "cli_indisponible" }, { status: 503 });
   }
   try {
-    const client = new Anthropic();
-    const response = await client.messages.parse({
-      model: "claude-sonnet-5",
-      max_tokens: 8000,
-      system: construirePromptSysteme(),
-      messages: [{ role: "user", content: `Texte à analyser :\n\n${texte.slice(0, 30000)}` }],
-      output_config: { format: zodOutputFormat(ReponseLlmSchema), effort: "medium" },
-    });
-    const parsed = response.parsed_output;
-    if (!parsed) return NextResponse.json({ erreur: "llm_indisponible" }, { status: 500 });
+    const parsed = ReponseLlmSchema.parse(extraireJson(brut));
     return NextResponse.json({ findings: convertirFindingsLlm(parsed.findings, texte) });
   } catch {
-    return NextResponse.json({ erreur: "llm_indisponible" }, { status: 500 });
+    return NextResponse.json({ erreur: "reponse_invalide" }, { status: 502 });
   }
 }
 ```
 
-Vérifier la signature exacte de `zodOutputFormat` dans la version installée du SDK (`node_modules/@anthropic-ai/sdk/helpers/zod`) — si elle exige un nom : `zodOutputFormat(ReponseLlmSchema, "reponse")`. Si `output_config` n'accepte pas `effort` sur `parse()` dans la version installée, le retirer (le défaut convient).
+Le client (Task 13) traite déjà tout `!res.ok` comme `statutLlm = "indisponible"` — aucun changement nécessaire.
 
-- [ ] **Step 8: Test manuel de la route** (nécessite une clé dans `.env.local`)
+- [ ] **Step 10: Test manuel de la route** (nécessite la CLI `claude` authentifiée localement)
 
 ```bash
 npm run dev &
 sleep 5
 curl -s -X POST localhost:3000/api/analyze-llm -H 'content-type: application/json' \
-  -d '{"texte":"Proposition de loi visant à modifier l'\''article L. 121-1 du code de la consommation, l'\''article L. 3 du code du sport et diverses dispositions relatives à la transparence, à la simplification et à la modernisation des procédures applicables.\nArticle 1er\nÀ l'\''article 2, les mots : « deux ans » sont remplacés par les mots : « trois ans »."}' | head -c 2000
+  -d '{"texte":"Proposition de loi visant à modifier l'"'"'article L. 121-1 du code de la consommation, l'"'"'article L. 3 du code du sport et diverses dispositions relatives à la transparence, à la simplification et à la modernisation des procédures applicables.\nArticle 1er\nÀ l'"'"'article 2, les mots : « deux ans » sont remplacés par les mots : « trois ans »."}' | head -c 2000
 ```
 
-Attendu : JSON `{"findings":[...]}` avec au moins un finding RL-01 (titre trop long avec références). Sans clé : `{"erreur":"cle_absente"}` en 503.
+Attendu : JSON `{"findings":[...]}` avec au moins un finding RL-01 (titre trop long avec références), en ~10-30 s. CLI non installée : `{"erreur":"cli_indisponible"}` en 503.
 
-- [ ] **Step 9: Commit** — `git commit -am "Add Claude LLM analysis layer with structured outputs"`
-
----
+- [ ] **Step 11: Commit** — `git commit -am "Add LLM analysis layer via local claude CLI"`
 
 ### Task 12: Import de fichiers (.docx / .pdf / .txt) + normalisation
 
@@ -2161,7 +2256,7 @@ export function VueResultat({ texte, findings, statutLlm, onAppliquer, onTexteCh
 
 - [ ] **Step 4: Vérification manuelle du flux complet**
 
-`npm run dev` → coller l'exemple pédagogique → vérifier : surlignages immédiats, badge « Analyse approfondie en cours… » puis findings LLM orange qui s'ajoutent (avec clé API), clic surlignage → popover → « Appliquer » corrige le texte et fait remonter le score, « Tout corriger » nettoie tout, export télécharge le .txt.
+`npm run dev` → coller l'exemple pédagogique → vérifier : surlignages immédiats, badge « Analyse approfondie en cours… » puis findings LLM orange qui s'ajoutent (avec la CLI `claude` authentifiée), clic surlignage → popover → « Appliquer » corrige le texte et fait remonter le score, « Tout corriger » nettoie tout, export télécharge le .txt.
 
 - [ ] **Step 5: Commit** — `git commit -am "Add full results screen with score gauge, findings panel and bulk fix"`
 
@@ -2298,7 +2393,7 @@ test("saisie manuelle : texte propre -> score 100", async ({ page }) => {
 });
 ```
 
-Note : l'e2e ne dépend PAS de la clé API (le badge « indisponible » est un état valide).
+Note : l'e2e ne dépend PAS de la CLI `claude` (le badge « indisponible » est un état valide).
 
 - [ ] **Step 3: Lancer** — `npm run e2e` → PASS (ajuster les sélecteurs si besoin).
 

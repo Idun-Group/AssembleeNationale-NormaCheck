@@ -20,7 +20,10 @@ Critère de succès : une démo fluide, visuelle et compréhensible en quelques 
 
 - **Next.js** (App Router) + TypeScript, une seule app full-stack.
 - **Tailwind CSS + shadcn/ui** pour l'UI.
-- **Claude API** (`claude-sonnet-5`) pour la couche d'analyse sémantique, clé côté serveur (API route).
+- **CLI `claude` locale** pour la couche d'analyse sémantique : l'API route invoque
+  `claude -p --output-format json --dangerously-skip-permissions` (couverte par le plan/abonnement
+  Claude local, pas de clé API). L'appel est isolé derrière `executerLlm(system, user)` dans
+  `lib/llm/executer.ts` — la bascule ultérieure vers l'API Anthropic ne touchera que ce fichier.
 - Aucune base de données : pas de comptes, pas de persistance. Un onglet = un texte analysé.
 - Tests : Vitest (moteur de règles) + un test e2e Playwright sur le flux principal.
 
@@ -101,7 +104,8 @@ Règles sémantiques hors de portée des regex :
 
 Contraintes :
 
-- sortie JSON structurée (tool use / structured output) ;
+- sortie JSON stricte demandée dans le prompt, extraite de la réponse CLI puis validée par un
+  schéma zod (retry non nécessaire : réponse invalide = mode dégradé) ;
 - **ancrage par citation exacte** : le LLM cite le passage fautif verbatim, le serveur
   retrouve l'offset dans le texte ; si la citation est introuvable, le finding est affiché
   dans la liste latérale **sans surlignage** — jamais de surlignage faux ;
@@ -112,7 +116,7 @@ Contraintes :
 
 - Les findings déterministes s'affichent **immédiatement** ; les findings LLM arrivent en
   streaming quelques secondes après — l'analyse « se complète sous les yeux du jury ».
-- Si le LLM est indisponible (réseau, quota), l'app fonctionne en mode déterministe seul,
+- Si le LLM est indisponible (CLI `claude` absente, non authentifiée, réponse invalide), l'app fonctionne en mode déterministe seul,
   avec un badge discret « analyse approfondie indisponible ». La démo ne peut pas planter.
 
 ## 6. Écrans
