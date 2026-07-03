@@ -22,6 +22,15 @@ describe("typographie §7.2", () => {
     expect(detecte("R7.2-02", "le titre III du livre VIII")).toHaveLength(0);
     expect(detecte("R7.2-02", "l'établissement public OSEO")).toHaveLength(0);
   });
+  it("R7.2-02 détecte les sigles en lettres romaines hors contexte de division", () => {
+    expect(detecte("R7.2-02", "un contrat CDD").length).toBeGreaterThanOrEqual(1);
+    expect(detecte("R7.2-02", "un contrat CDI").length).toBeGreaterThanOrEqual(1);
+    expect(detecte("R7.2-02", "la CNIL").length).toBeGreaterThanOrEqual(1);
+  });
+  it("R7.2-02 continue d'ignorer les vrais chiffres romains après un mot de division", () => {
+    expect(detecte("R7.2-02", "le titre III du livre VIII")).toHaveLength(0);
+    expect(detecte("R7.2-02", "l'article XV du code")).toHaveLength(0);
+  });
   it("R7.2-03 détecte les guillemets anglais", () => {
     expect(detecte("R7.2-03", 'les mots : "deux ans" sont supprimés').length).toBeGreaterThan(0);
   });
@@ -33,6 +42,15 @@ describe("typographie §7.2", () => {
   it("R7.2-04 détecte « A la » en début de phrase", () => {
     expect(detecte("R7.2-04", "A la première phrase, le mot est supprimé")[0].suggestion).toBe("À la");
     expect(detecte("R7.2-04", "A. – L'article 3 est abrogé")).toHaveLength(0);
+  });
+  it("R7.2-04 n'écrase pas le verbe « avoir » en emploi médian", () => {
+    expect(detecte("R7.2-04", "Le préfet A le pouvoir de décision")).toHaveLength(0);
+    expect(detecte("R7.2-04", "il A la responsabilité")).toHaveLength(0);
+  });
+  it("R7.2-04 laisse le motif « Etat » intact indépendamment de la position", () => {
+    const r = detecte("R7.2-04", "un Etat membre");
+    expect(r.length).toBeGreaterThanOrEqual(1);
+    expect(r[0].suggestion).toBe("État");
   });
   it("R7.2-05 détecte un nombre à points", () => {
     const r = detecte("R7.2-05", "un montant de 1.205.632 €");

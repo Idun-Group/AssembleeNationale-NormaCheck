@@ -8,7 +8,7 @@ function regle(r: Omit<Regle, "famille">): Regle {
   return { famille: "Typographie", ...r };
 }
 
-// R7.2-02 — sigles en majuscules, à l'exclusion des chiffres romains et des exceptions
+// R7.2-02 — sigles en majuscules, à l'exclusion des chiffres romains (en contexte de division) et des exceptions
 const EXCEPTIONS_SIGLES = new Set([
   "OSEO",
   "CHAPITRE",
@@ -19,7 +19,16 @@ const EXCEPTIONS_SIGLES = new Set([
   "DISPOSITIONS",
 ]);
 
-const SIGLE_RE = new RegExp(`${G}(?![IVXLCDM]+${D})[A-ZÀ-Ý]{2,}${D}`, "g");
+// Mots de division qui, suivis d'un chiffre romain, en font un numéral (et non un sigle).
+const MOTS_DIVISION =
+  "chapitres?|titres?|livres?|sections?|sous-sections?|parties?|articles?|paragraphes?";
+
+// Un token composé uniquement des lettres romaines {I,V,X,L,C,D,M} n'est écarté
+// que s'il est réellement un numéral, c'est-à-dire précédé (à une espace près)
+// d'un mot de division. Sinon, un tel token est un sigle potentiel (ex. CDD, CDI, CIV).
+const DIVISION_ROMAINE_RE = new RegExp(`(?:${MOTS_DIVISION}) [IVXLCDM]+$`, "i");
+
+const SIGLE_RE = new RegExp(`${G}[A-ZÀ-Ý]{2,}${D}`, "g");
 
 function detecteSigles(texte: string): Detection[] {
   const out: Detection[] = [];
@@ -27,6 +36,14 @@ function detecteSigles(texte: string): Detection[] {
   let m: RegExpExecArray | null;
   while ((m = re.exec(texte)) !== null) {
     const mot = m[0];
+    const estRomain = /^[IVXLCDM]+$/.test(mot);
+    if (estRomain) {
+      const precedent = texte.slice(0, m.index + mot.length);
+      if (DIVISION_ROMAINE_RE.test(precedent)) {
+        if (m.index === re.lastIndex) re.lastIndex++;
+        continue;
+      }
+    }
     if (!EXCEPTIONS_SIGLES.has(mot)) {
       out.push({
         span: { start: m.index, end: m.index + mot.length },
@@ -42,7 +59,12 @@ function detecteSigles(texte: string): Detection[] {
 
 // R7.2-04 — majuscules non accentuées : « Etat(s) » et « A » en tête de phrase
 const ETAT_RE = /(?<![A-Za-zÀ-ÿ])Etats?(?![a-zà-ÿ])/g;
-const A_ACCENT_RE = /(?<![A-Za-zÀ-ÿ.])A (la|l'|le|les|compter|cette|ce|défaut|titre)/g;
+// « A » n'est corrigé en « À » qu'en tête de phrase : précédé (à des espaces
+// près) du début du texte, d'un saut de ligne, ou d'une ponctuation de fin de
+// phrase (. ! ? : » «). Cela évite de corriger le verbe « avoir » en emploi
+// médian (« Le préfet A le pouvoir »).
+const A_ACCENT_RE =
+  /(?<=^[ \t]*|[\n.!?:»«][ \t]*)A (la|l'|le|les|compter|cette|ce|défaut|titre)/g;
 
 function detecteMajusculesNonAccentuees(texte: string): Detection[] {
   const out: Detection[] = [];
