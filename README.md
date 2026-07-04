@@ -50,8 +50,38 @@ corrections, score), qui reste vraie même si l'analyse IA est indisponible.
 ## Les trois écrans
 
 1. **Saisie** (`/`) — collez un texte, importez un fichier (`.docx`, `.pdf`, `.txt`) ou
-   partez d'un exemple pédagogique.
-2. **Résultat** — texte annoté avec surlignages cliquables par sévérité, score de
-   conformité, correction unitaire ou globale (« Tout corriger »), export du texte corrigé.
-3. **Glossaire** (`/glossaire`) — les règles du guide de légistique utilisées par
-   NormaCheck, classées par famille et consultables par mot-clé.
+   partez d'un des trois exemples préchargés (texte pédagogique, extrait de PPL, cas
+   d'analyse approfondie conçu pour la couche IA).
+2. **Résultat** — texte annoté avec surlignages cliquables par sévérité
+   (🔴 enfreinte · 🟠 à revoir · 🔵 suggestion), score de conformité qui remonte en direct,
+   correction unitaire ou globale (« Tout corriger »), export du texte corrigé.
+3. **Glossaire** (`/glossaire`) — les ~50 règles du guide de légistique utilisées par
+   NormaCheck, classées par famille et consultables par mot-clé. Chaque surlignage de
+   l'écran Résultat renvoie vers sa fiche : le glossaire et le moteur partagent le même
+   catalogue de règles.
+
+## Carte du code
+
+```
+lib/rules/       le catalogue de règles — source unique alimentant moteur, glossaire et prompt IA
+lib/engine/      analyse, fusion déterministe/IA, score, application des corrections, parseur structurel
+lib/llm/         couche IA : executer.ts (spawn CLI claude — seul point de contact LLM), prompt, validation
+lib/import/      normalisation du texte importé
+app/api/         analyze-llm (analyse IA) · extract (.docx/.pdf/.txt → texte)
+components/      UI (analyseur, texte annoté, panneau de findings, jauge, glossaire)
+data/exemples/   les 3 textes de démo, verrouillés par des golden tests
+tests/ · e2e/    Vitest (135 tests) · Playwright (flux de démo complet)
+```
+
+## Contribuer
+
+Le fichier [CLAUDE.md](./CLAUDE.md) documente l'architecture, les conventions et les
+pièges du repo (frontières de mots françaises, Base UI vs Radix, ajout d'une règle…) —
+il sert de guide d'embarquement, que vous travailliez avec Claude Code ou non. Le cas de
+contribution le plus courant — ajouter une règle de légistique — y est décrit pas à pas.
+
+## Crédits
+
+Projet développé pour le hackathon 2026 de l'Assemblée nationale. Design aligné sur la
+charte du hackathon (Lora/Lato, bleu Assemblée `#233f6b`). Les règles implémentées sont
+tirées du guide pour la rédaction des textes législatifs ([GUIDE_LEGISTIQUE.md](./GUIDE_LEGISTIQUE.md)).
