@@ -8,6 +8,7 @@ import { PanneauFindings } from "@/components/panneau-findings";
 import { JaugeScore } from "@/components/jauge-score";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { StatutAnalyseApprofondie } from "@/components/statut-llm";
 import type { StatutLlm } from "@/components/analyseur";
 
 // Le contrat de props ci-dessous est celui consommé par <Analyseur/> (Task 13) :
@@ -58,16 +59,6 @@ export function VueResultat({ texte, findings, statutLlm, onAppliquer, onTexteCh
           <Badge variant="secondary">
             {score.parSeverite.suggestion} suggestion{score.parSeverite.suggestion > 1 ? "s" : ""}
           </Badge>
-          {statutLlm === "en_cours" && (
-            <Badge variant="outline" className="animate-pulse" data-testid="badge-llm">
-              Analyse approfondie en cours…
-            </Badge>
-          )}
-          {statutLlm === "indisponible" && (
-            <Badge variant="outline" className="text-muted-foreground" data-testid="badge-llm">
-              Analyse approfondie indisponible
-            </Badge>
-          )}
         </div>
         <div className="flex gap-2">
           <Button onClick={toutCorriger} disabled={nbApplicables === 0} data-testid="bouton-tout-corriger">
@@ -81,6 +72,7 @@ export function VueResultat({ texte, findings, statutLlm, onAppliquer, onTexteCh
           </Button>
         </div>
       </div>
+      <StatutAnalyseApprofondie statut={statutLlm} />
       <div className="grid gap-4 lg:grid-cols-[1fr_340px]">
         <TexteAnnote
           texte={texte}

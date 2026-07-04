@@ -6,11 +6,17 @@ import { extraireJson } from "@/lib/llm/extraire-json";
 import { convertirFindingsLlm } from "@/lib/llm/convertir";
 
 export const runtime = "nodejs";
-// Les textes longs demandent jusqu'à ~250 s d'analyse LLM (cf. lib/llm/executer.ts,
-// timeout par défaut 300 s) : la route doit laisser au moins autant de marge.
-export const maxDuration = 300;
+// La couche IA repose sur la CLI `claude` locale : elle ne tourne PAS en
+// serverless (Vercel). Le vrai timeout d'un appel local est dans
+// lib/llm/executer.ts (300 s). Ici on reste sous le plafond de tous les plans
+// Vercel : la démo publique désactive de toute façon cette route.
+export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
+  // Démo publique : analyse approfondie désactivée (drapeau de build).
+  if (process.env.NEXT_PUBLIC_NORMACHECK_LLM_DISABLED === "1") {
+    return NextResponse.json({ erreur: "desactivee" }, { status: 503 });
+  }
   const { texte } = (await req.json()) as { texte?: string };
   if (!texte || texte.length < 20) {
     return NextResponse.json({ erreur: "texte_invalide" }, { status: 400 });

@@ -6,7 +6,12 @@ import { fusionner, ancrer } from "@/lib/engine/fusion";
 import { ZoneSaisie } from "@/components/zone-saisie";
 import { VueResultat } from "@/components/vue-resultat";
 
-export type StatutLlm = "inactif" | "en_cours" | "ok" | "indisponible";
+export type StatutLlm = "inactif" | "en_cours" | "ok" | "indisponible" | "desactivee";
+
+// Drapeau de démo : quand NEXT_PUBLIC_NORMACHECK_LLM_DISABLED=1 (build Vercel de
+// la démo publique), l'analyse approfondie (CLI Claude locale) est indisponible
+// côté serveur — on ne tente pas l'appel et l'UI l'indique clairement.
+const LLM_DESACTIVEE = process.env.NEXT_PUBLIC_NORMACHECK_LLM_DISABLED === "1";
 
 export function Analyseur() {
   const [texte, setTexte] = useState("");
@@ -30,6 +35,13 @@ export function Analyseur() {
     const ticket = ++ticketRef.current;
     setTexte(t);
     setEnResultat(true);
+    // Démo publique : l'analyse approfondie est désactivée — on n'appelle pas
+    // l'API et l'UI affiche le message dédié (avec contact).
+    if (LLM_DESACTIVEE) {
+      setFindingsLlm([]);
+      setStatutLlm("desactivee");
+      return;
+    }
     setStatutLlm("en_cours");
     try {
       const res = await fetch("/api/analyze-llm", {
