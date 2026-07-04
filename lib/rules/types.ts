@@ -7,7 +7,9 @@ export type Famille =
   | "Typographie"
   | "Modifications de la norme"
   | "Références"
-  | "Formules standard";
+  | "Formules standard"
+  | "Cohérence du dispositif"
+  | "Recevabilité et procédure";
 
 export interface Span { start: number; end: number }
 

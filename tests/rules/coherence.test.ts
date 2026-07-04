@@ -13,7 +13,7 @@ describe("RT-01 — injonction au Gouvernement (PPL-PAR-SEP-001)", () => {
       "Le Gouvernement dépose au Parlement, avant le 1er janvier 2027, un projet de loi visant à réformer le régime des retraites.",
     );
     expect(r.length).toBe(1);
-    expect(r[0].message).toContain("injonction");
+    expect(r[0].message).toMatch(/injonction/i);
   });
   it("détecte « est tenu de déposer un projet de loi »", () => {
     expect(
