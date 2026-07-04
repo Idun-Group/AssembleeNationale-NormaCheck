@@ -1,10 +1,17 @@
-# NormaCheck
+<p align="center">
+  <img src="public/logo-normacheck.jpg" alt="NormaCheck" width="128" height="128" />
+</p>
 
-**🔗 Démo en ligne : [normacheck.idun-group.com](https://normacheck.idun-group.com/)**
+<h1 align="center">NormaCheck</h1>
 
-> Projet issu du **[Hackathon 2026 de l'Assemblée nationale](https://hackathon2026.assemblee-nationale.fr/defis/cee00932-3b4b-4c44-a338-047a9bdd2d14)**
-> (voir le défi). Sur la démo en ligne, l'analyse approfondie (IA) est désactivée ; l'analyse
-> déterministe est pleinement fonctionnelle.
+<p align="center">
+  <strong>🔗 Démo en ligne : <a href="https://normacheck.idun-group.com/">normacheck.idun-group.com</a></strong><br/>
+  Projet <strong>open source</strong> · <a href="https://github.com/Idun-Group/AssembleeNationale-NormaCheck">code sur GitHub</a>
+  · issu du <a href="https://hackathon2026.assemblee-nationale.fr/defis/cee00932-3b4b-4c44-a338-047a9bdd2d14">Hackathon 2026 de l'Assemblée nationale</a>
+</p>
+
+> Sur la démo en ligne, l'analyse approfondie (IA) est désactivée ; l'analyse déterministe reste
+> pleinement fonctionnelle.
 
 NormaCheck est un vérificateur de légistique pour les textes législatifs, conçu pour le
 hackathon de l'Assemblée nationale. Collez ou importez un article de loi, un amendement ou
