@@ -43,6 +43,18 @@ describe("typographie §7.2", () => {
     expect(detecte("R7.2-02", "un contrat CDD").length).toBeGreaterThanOrEqual(1);
     expect(detecte("R7.2-02", "un contrat CDD.").length).toBeGreaterThanOrEqual(1);
   });
+  it("R7.2-02 n'écrase pas les en-têtes, titres et signatures en capitales d'un texte réel", () => {
+    // en-tête / titres de la PPL
+    expect(detecte("R7.2-02", "ASSEMBLÉE NATIONALE")).toHaveLength(0);
+    expect(detecte("R7.2-02", "EXPOSÉ DES MOTIFS")).toHaveLength(0);
+    expect(detecte("R7.2-02", "MESDAMES, MESSIEURS")).toHaveLength(0);
+    expect(detecte("R7.2-02", "PROPOSITION DE LOI")).toHaveLength(0);
+    // bloc de signatures : patronymes en capitales après une civilité/prénom
+    expect(detecte("R7.2-02", "M. Thibault BAZIN, M. Hubert BRIGAND")).toHaveLength(0);
+    expect(detecte("R7.2-02", "Mme Véronique LOUWAGIE")).toHaveLength(0);
+    // mais un vrai sigle en prose reste signalé
+    expect(detecte("R7.2-02", "le rapport de la CNIL et de l'INSEE").length).toBeGreaterThanOrEqual(1);
+  });
   it("R7.2-03 détecte les guillemets anglais", () => {
     expect(detecte("R7.2-03", 'les mots : "deux ans" sont supprimés').length).toBeGreaterThan(0);
   });

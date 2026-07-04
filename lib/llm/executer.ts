@@ -1,11 +1,19 @@
 import { execFile } from "node:child_process";
 import os from "node:os";
+import { reponseLlmMock } from "./mock";
 
 /**
  * Exécute la CLI `claude` locale en mode headless (couverte par le plan Claude).
  * Bascule API ultérieure : réécrire uniquement cette fonction.
+ *
+ * Mode démo hors-ligne : si NORMACHECK_LLM_MOCK=1, on renvoie une réponse
+ * plausible sans appeler la CLI (utile en démo si le réseau ou l'authentification
+ * `claude` est indisponible). Désactivé par défaut.
  */
 export function executerLlm(prompt: string): Promise<string> {
+  if (process.env.NORMACHECK_LLM_MOCK === "1") {
+    return Promise.resolve(reponseLlmMock(prompt));
+  }
   return new Promise((resolve, reject) => {
     const child = execFile(
       "claude",
