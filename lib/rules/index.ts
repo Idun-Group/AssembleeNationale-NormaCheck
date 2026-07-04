@@ -3,15 +3,15 @@ import { FORMULES_STANDARD } from "./formules-standard";
 import { TYPOGRAPHIE } from "./typographie";
 import { REFERENCES } from "./references";
 import { STRUCTURELLES } from "./structurelles";
+import { REGLES_LLM } from "./llm";
 export * from "./types";
 
-// Le tableau restant est ajouté par la tâche suivante : ...REGLES_LLM
 export const REGLES: Regle[] = [
   ...FORMULES_STANDARD,
   ...TYPOGRAPHIE,
   ...REFERENCES,
   ...STRUCTURELLES,
-  // ...REGLES_LLM
+  ...REGLES_LLM,
 ];
 
 export const FAMILLES: Famille[] = [
