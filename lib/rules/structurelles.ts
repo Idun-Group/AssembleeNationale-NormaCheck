@@ -23,6 +23,15 @@ function estCiviliteMonsieur(l: { marqueur?: string; texte: string }): boolean {
   return /^[A-ZÀ-Ý]/.test(reste);
 }
 
+// « L. 228 », « R. 512-1 », « D. 2 » : une référence d'article codifié (partie
+// Législative / Réglementaire / Décret) suivie d'un numéro, et non une
+// subdivision de type « A. ». Fréquent quand un PDF coupe « …de l'article
+// L. 228 » en fin de ligne. On l'écarte de R5-01.
+function estReferenceCodeArticle(l: { marqueur?: string; texte: string }): boolean {
+  if (!l.marqueur || !/^[LRD]$/.test(l.marqueur)) return false;
+  return /^[LRD]\.\s*\d/.test(l.texte.replace(/^\s+/, ""));
+}
+
 // R5-01 — paragraphe_romain | lettre_maj SANS tiret : le tiret est obligatoire.
 function detecteTiretManquant(texte: string): Detection[] {
   const out: Detection[] = [];
@@ -31,7 +40,8 @@ function detecteTiretManquant(texte: string): Detection[] {
       (l.type === "paragraphe_romain" || l.type === "lettre_maj") &&
       l.avecTiret === false &&
       l.marqueur &&
-      !estCiviliteMonsieur(l)
+      !estCiviliteMonsieur(l) &&
+      !estReferenceCodeArticle(l)
     ) {
       const start = l.start;
       const end = l.start + l.marqueur.length + 1; // couvre "I." ou "A."
@@ -189,17 +199,25 @@ function detecteGuillemetOuvrantManquant(texte: string): Detection[] {
   const out: Detection[] = [];
   const lignes = classifier(texte);
   const blocs = blocsRediges(lignes);
+  // Types de lignes qui, à l'intérieur d'un bloc, sont des INSTRUCTIONS de
+  // modification imbriquées (« 1° … est ainsi rédigé : », « a) … ») et non des
+  // alinéas rédigés : R6-01 (guillemet ouvrant) ne s'y applique pas. Un vrai
+  // alinéa rédigé qui serait une énumération s'écrit « 1° … » (ouvert par «).
+  const TYPES_INSTRUCTION = new Set([
+    "enum_degre", "enum_lettre", "numero", "lettre_min", "lettre_maj", "paragraphe_romain", "chapeau_redige",
+  ]);
   for (const bloc of blocs) {
     for (const idx of bloc.lignes) {
       const l = lignes[idx];
       const trimme = l.texte.trimStart();
-      if (!trimme.startsWith("«")) {
-        out.push({
-          span: { start: l.start, end: l.end },
-          extrait: l.texte,
-          message: "Tout alinéa rédigé commence par des guillemets.",
-        });
-      }
+      if (trimme.startsWith("«")) continue;
+      if (/:\s*$/.test(l.texte)) continue; // chapeau/instruction se terminant par « : »
+      if (TYPES_INSTRUCTION.has(l.type)) continue; // marqueur de modification imbriqué
+      out.push({
+        span: { start: l.start, end: l.end },
+        extrait: l.texte,
+        message: "Tout alinéa rédigé commence par des guillemets.",
+      });
     }
   }
   return out;
@@ -227,6 +245,47 @@ function detecteGuillemetFermantPrecoce(texte: string): Detection[] {
         });
       }
     }
+  }
+  return out;
+}
+
+// R5-05 — numérotation en double : deux subdivisions CONSÉCUTIVES de même
+// niveau portent le même numéro (« I, II, II, IV »). Conservateur pour éviter
+// les faux positifs : on remet les compteurs à zéro à chaque ligne vide, à
+// chaque en-tête d'article et à chaque chapeau rédigé (les énumérations
+// indépendantes en sont ainsi séparées) ; un niveau supérieur réinitialise les
+// niveaux plus profonds (les sous-énumérations recommencent).
+const RANG_NIVEAU: Partial<Record<string, number>> = {
+  paragraphe_romain: 1,
+  lettre_maj: 2,
+  numero: 3,
+  enum_degre: 3,
+  lettre_min: 4,
+  enum_lettre: 4,
+};
+
+function detecteNumerotationDupliquee(texte: string): Detection[] {
+  const out: Detection[] = [];
+  let dernier: Record<string, string> = {};
+  for (const l of classifier(texte)) {
+    if (l.texte.trim() === "" || /^Article\b/i.test(l.texte.replace(/^\s+/, "")) || l.type === "chapeau_redige") {
+      dernier = {};
+      continue;
+    }
+    const rang = RANG_NIVEAU[l.type];
+    if (!rang || !l.marqueur) continue;
+    for (const t of Object.keys(dernier)) {
+      if ((RANG_NIVEAU[t] ?? 0) > rang) delete dernier[t];
+    }
+    if (dernier[l.type] === l.marqueur) {
+      out.push({
+        span: { start: l.start, end: l.start + l.marqueur.length },
+        extrait: l.marqueur,
+        message:
+          "Numérotation en double : deux subdivisions consécutives portent le même numéro. Vérifier la séquence.",
+      });
+    }
+    dernier[l.type] = l.marqueur;
   }
   return out;
 }
@@ -275,6 +334,17 @@ export const STRUCTURELLES: Regle[] = [
     exempleKo: "1° Le deuxième alinéa est supprimé.\n2° Le troisième alinéa est supprimé.",
     exempleOk: "1° Le deuxième alinéa est supprimé ;\n2° Le troisième alinéa est supprimé.",
     detecteur: detecteSansPointVirgule,
+  }),
+  regleDivisions({
+    id: "R5-05",
+    ref: "§5",
+    severite: "suggestion",
+    titre: "Numérotation en double dans une série de subdivisions",
+    explication:
+      "Les subdivisions d'une même série sont numérotées de façon continue et sans doublon. Deux subdivisions consécutives portant le même numéro (par exemple « II » répété) signalent une erreur de séquence.",
+    exempleKo: "I. – …\nII. – …\nII. – …",
+    exempleOk: "I. – …\nII. – …\nIII. – …",
+    detecteur: detecteNumerotationDupliquee,
   }),
   regleAlineas({
     id: "R6-01",

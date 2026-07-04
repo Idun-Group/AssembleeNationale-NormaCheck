@@ -6,7 +6,9 @@ import { extraireJson } from "@/lib/llm/extraire-json";
 import { convertirFindingsLlm } from "@/lib/llm/convertir";
 
 export const runtime = "nodejs";
-export const maxDuration = 180;
+// Les textes longs demandent jusqu'à ~250 s d'analyse LLM (cf. lib/llm/executer.ts,
+// timeout par défaut 300 s) : la route doit laisser au moins autant de marge.
+export const maxDuration = 300;
 
 export async function POST(req: NextRequest) {
   const { texte } = (await req.json()) as { texte?: string };

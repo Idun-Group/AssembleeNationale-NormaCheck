@@ -30,6 +30,31 @@ const RE_ENUM_LETTRE = /^([a-z])\)\s/;
 const RE_TIRET = /^[–-]\s/;
 const RE_CHAPEAU = /(ainsi rédigée?s?\s*:|ainsi modifiée?s?\s*:)\s*$/;
 
+// En-tête d'article marquant l'entrée dans le dispositif (« Article 1er »,
+// « Article premier », « Article unique »). Majuscule initiale exigée pour ne
+// pas confondre avec un renvoi en prose (« l'article 1er de la loi… »).
+const RE_ARTICLE_ENTETE = /^Article\s+(premier|1(?:er|ère|re)?|unique)\b/;
+
+/**
+ * Offset du début du dispositif quand le texte comporte un exposé des motifs.
+ * Les règles de légistique (typographie, structure, formules) visent le texte
+ * NORMATIF : appliquées à la prose de l'exposé, elles produisent des faux
+ * positifs (parenthèses d'appels de note, sigles glosés, chiffres statistiques).
+ * On renvoie l'offset du premier en-tête d'article situé APRÈS « EXPOSÉ DES
+ * MOTIFS ». En l'absence d'exposé (ou d'en-tête d'article), on renvoie 0 :
+ * aucun filtrage, comportement inchangé pour un dispositif collé seul.
+ */
+export function debutDispositif(texte: string): number {
+  const iExpose = texte.search(/EXPOS[EÉ]\s+DES\s+MOTIFS/i);
+  if (iExpose === -1) return 0;
+  for (const l of decouperLignes(texte)) {
+    if (l.start > iExpose && RE_ARTICLE_ENTETE.test(l.texte.replace(/^\s+/, ""))) {
+      return l.start;
+    }
+  }
+  return 0;
+}
+
 export function classifierLigne(l: Ligne): LigneClassifiee {
   const t = l.texte;
   let m: RegExpMatchArray | null;

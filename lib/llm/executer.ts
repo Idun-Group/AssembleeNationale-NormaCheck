@@ -10,10 +10,29 @@ import { reponseLlmMock } from "./mock";
  * plausible sans appeler la CLI (utile en démo si le réseau ou l'authentification
  * `claude` est indisponible). Désactivé par défaut.
  */
-export function executerLlm(prompt: string): Promise<string> {
-  if (process.env.NORMACHECK_LLM_MOCK === "1") {
-    return Promise.resolve(reponseLlmMock(prompt));
-  }
+// Timeout d'un appel CLI. Les textes législatifs réels (> 2500 mots) demandent
+// 170-240 s à `claude -p --model sonnet` ; 120 s était trop bas. Configurable
+// pour la démo / la bascule d'environnement.
+const TIMEOUT_MS = Number(process.env.NORMACHECK_LLM_TIMEOUT_MS ?? 300_000);
+
+// Le plan Claude local ne tient pas plusieurs `claude -p` simultanés (chaque
+// appel concurrent gonfle la latence et finit par expirer). On sérialise donc
+// les appels : une file d'attente de concurrence 1 à l'échelle du process.
+let file: Promise<unknown> = Promise.resolve();
+function enfiler<T>(job: () => Promise<T>): Promise<T> {
+  const resultat = file.then(job, job);
+  file = resultat.then(
+    () => undefined,
+    () => undefined,
+  );
+  return resultat;
+}
+
+function estTimeout(err: unknown): boolean {
+  return !!err && typeof err === "object" && (err as { killed?: boolean }).killed === true;
+}
+
+function unAppel(prompt: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const child = execFile(
       "claude",
@@ -26,7 +45,7 @@ export function executerLlm(prompt: string): Promise<string> {
       ],
       {
         cwd: os.tmpdir(),      // hors du repo : pas de CLAUDE.md ni de contexte projet
-        timeout: 120_000,
+        timeout: TIMEOUT_MS,
         maxBuffer: 10 * 1024 * 1024,
         env: { ...process.env, CLAUDE_CODE_DISABLE_TELEMETRY: "1" },
       },
@@ -46,5 +65,20 @@ export function executerLlm(prompt: string): Promise<string> {
     );
     child.stdin?.write(prompt);
     child.stdin?.end();
+  });
+}
+
+export function executerLlm(prompt: string): Promise<string> {
+  if (process.env.NORMACHECK_LLM_MOCK === "1") {
+    return Promise.resolve(reponseLlmMock(prompt));
+  }
+  return enfiler(async () => {
+    try {
+      return await unAppel(prompt);
+    } catch (err) {
+      // Une tentative de relance sur échec transitoire (timeout, hoquet CLI).
+      if (estTimeout(err)) return await unAppel(prompt);
+      throw err;
+    }
   });
 }

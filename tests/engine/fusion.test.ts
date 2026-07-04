@@ -14,6 +14,19 @@ describe("ancrer", () => {
   it("retourne null si introuvable", () => {
     expect(ancrer("absent", "texte")).toBeNull();
   });
+  it("tolère une apostrophe droite là où le texte a une apostrophe typographique", () => {
+    const texte = "Après le 22° de l’article L. 161-37, il est inséré un alinéa.";
+    // le LLM cite avec une apostrophe droite '
+    const span = ancrer("de l'article L. 161-37", texte)!;
+    expect(span).not.toBeNull();
+    expect(texte.slice(span.start, span.end)).toBe("de l’article L. 161-37");
+  });
+  it("tolère un saut de ligne PDF là où la citation a une espace", () => {
+    const texte = "il est inséré\nun article L. 5121-8-3 ainsi rédigé";
+    const span = ancrer("il est inséré un article L. 5121-8-3", texte)!;
+    expect(span).not.toBeNull();
+    expect(texte.slice(span.start, span.end)).toBe("il est inséré\nun article L. 5121-8-3");
+  });
 });
 
 describe("fusionner", () => {

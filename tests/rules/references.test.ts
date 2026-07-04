@@ -55,6 +55,11 @@ describe("références et modifications", () => {
   it("R8.3-02 traverse toujours l'abréviation « L. 212-3 »", () => {
     expect(detecte("R8.3-02", "L'article L. 212-3 est supprimé.").length).toBeGreaterThanOrEqual(1);
   });
+  it("R8.3-02 n'est pas déclenché quand « article » est un complément (« de l'article »)", () => {
+    // le sujet réel est « le dernier alinéa », qui se supprime légitimement
+    expect(detecte("R8.3-02", "Le dernier alinéa de l'article L. 228-3 est supprimé.")).toHaveLength(0);
+    expect(detecte("R8.3-02", "La seconde phrase du deuxième alinéa de l'article 2 est supprimée.")).toHaveLength(0);
+  });
   it("R8.3-02 ne chevauche pas deux phrases (frontière de phrase après un point)", () => {
     expect(
       detecte(
@@ -62,5 +67,11 @@ describe("références et modifications", () => {
         "Le titre est modifié. L'article est supprimé.",
       ).every((f) => !f.extrait.includes("modifié")),
     ).toBe(true);
+  });
+  it("R9.3-01 signale une référence de loi à blanc « loi n° du »", () => {
+    expect(detecte("R9.3-01", "modifiée par la loi n° du relative à l'énergie").length).toBe(1);
+    expect(detecte("R9.3-01", "le décret n° du portant application")).toHaveLength(1);
+    // une référence complète n'est pas signalée
+    expect(detecte("R9.3-01", "la loi n° 2023-175 du 10 mars 2023")).toHaveLength(0);
   });
 });

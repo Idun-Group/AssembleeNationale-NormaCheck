@@ -127,15 +127,36 @@ export const REFERENCES: Regle[] = [
       "Les divisions, les articles ou les subdivisions d'article sont abrogés, et non supprimés : la suppression ne concerne que les alinéas, phrases, mots, nombres, chiffres, taux, etc.",
     exempleKo: "L'article L. 212-3 est supprimé.",
     exempleOk: "L'article L. 212-3 est abrogé.",
+    // Le nom (article/division…) doit être le SUJET de « est supprimé », pas un
+    // complément : « le dernier alinéa DE L'article L. 228 est supprimé » vise
+    // l'alinéa (qui, lui, se supprime légitimement), pas l'article. On écarte
+    // donc « article » précédé de « de l'/du/de la/des ».
     detecteur: detecteurRegex(
       new RegExp(
-        `${G}(articles?|chapitres?|titres?|sections?|sous-sections?|livres?|parties?|\\d+°)(${SEPARATEUR}{0,40}?)(est|sont) supprimée?s?${D}`,
+        `${G}(?<![Dd]e l['’])(?<![Dd]u )(?<![Dd]e la )(?<![Dd]es )(articles?|chapitres?|titres?|sections?|sous-sections?|livres?|parties?|\\d+°)(${SEPARATEUR}{0,40}?)(est|sont) supprimée?s?${D}`,
         "gi",
       ),
       {
         message:
           "Les divisions, les articles et les subdivisions d'article sont abrogés, et non supprimés.",
         suggestion: (m) => m[0].replace(/supprimé/gi, "abrogé"),
+      },
+    ),
+  }),
+  regleReferences({
+    id: "R9.3-01",
+    ref: "§9.3",
+    severite: "a_revoir",
+    titre: "Référence de texte incomplète (« loi n° du »)",
+    explication:
+      "Une référence à un texte doit comporter son numéro et sa date. Un « loi n° du » à blanc (numéro et date non renseignés) doit être complété avant l'adoption.",
+    exempleKo: "modifiée par la loi n° du relative à la transition énergétique",
+    exempleOk: "modifiée par la loi n° 2023-175 du 10 mars 2023 relative à la transition énergétique",
+    detecteur: detecteurRegex(
+      /(?:lois?|ordonnances?|décrets?)(?:\s+organiques?)?\s+n°\s+du\b/gi,
+      {
+        message:
+          "Référence incomplète : le numéro et la date de la loi (ou de l'ordonnance/du décret) ne sont pas renseignés.",
       },
     ),
   }),

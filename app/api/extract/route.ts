@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import mammoth from "mammoth";
 import { normaliser } from "@/lib/import/normaliser";
+import { nettoyerPdf } from "@/lib/import/pdf";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -35,6 +36,10 @@ export async function POST(req: NextRequest) {
         // pdf-parse v2 insère des séparateurs de page ("-- 1 of 1 --") dans le
         // texte extrait : on les retire avant normalisation, propre à ce format.
         texte = texte.replace(/^\s*-{2,}\s*\d+\s+of\s+\d+\s*-{2,}\s*$/gm, "");
+        // Nettoyage spécifique PDF : glyphes de zone privée (gouttières de
+        // numérotation de lignes) + recollage des lignes wrappées en alinéas
+        // logiques (sinon faux R6-01/R5-01 en cascade sur les PDF réels).
+        texte = nettoyerPdf(texte);
       } finally {
         await parser.destroy();
       }

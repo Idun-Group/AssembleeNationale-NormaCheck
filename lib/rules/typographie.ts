@@ -30,12 +30,24 @@ const DIVISION_ROMAINE_RE = new RegExp(`(?:${MOTS_DIVISION}) [IVXLCDM]+$`, "i");
 
 const SIGLE_RE = new RegExp(`${G}[A-ZÀ-Ý]{2,}${D}`, "g");
 
+// Mots de renvoi qui, devant un chiffre romain, en font une référence de
+// subdivision (« au II », « du III », « le présent IV », « des I à III »… ) et
+// non un sigle.
+const RENVOI_ROMAIN =
+  /^(au|aux|du|des|de|le|la|les|à|et|ou|présent|présente|second|premier|dernier|même)$/i;
+
 function detecteSigles(texte: string): Detection[] {
   const out: Detection[] = [];
   const re = new RegExp(SIGLE_RE.source, SIGLE_RE.flags);
   let m: RegExpExecArray | null;
   while ((m = re.exec(texte)) !== null) {
     const mot = m[0];
+    // Préfixe d'article codifié suivi d'un numéro (« LP. 112 », « LO. 6 »… ) :
+    // c'est une référence, pas un sigle.
+    if (/^\.\s*\d/.test(texte.slice(m.index + mot.length))) {
+      if (m.index === re.lastIndex) re.lastIndex++;
+      continue;
+    }
     const estRomain = /^[IVXLCDM]+$/.test(mot);
     if (estRomain) {
       const precedent = texte.slice(0, m.index + mot.length);
@@ -46,7 +58,11 @@ function detecteSigles(texte: string): Detection[] {
       const debutDeLigne = /(^|\n)\s*$/.test(texte.slice(0, m.index));
       const suiviDePoint = texte[m.index + mot.length] === ".";
       const estMarqueurDeLigne = debutDeLigne && suiviDePoint;
-      if (precedeDivision || estMarqueurDeLigne) {
+      // Renvoi de subdivision (« au II », « des I à III »… ) : le token romain
+      // est précédé d'un mot de renvoi, ce n'est pas un sigle.
+      const motAvant = texte.slice(0, m.index).match(/([A-Za-zÀ-ÿ']+)\s*$/);
+      const estRenvoi = !!motAvant && RENVOI_ROMAIN.test(motAvant[1]);
+      if (precedeDivision || estMarqueurDeLigne || estRenvoi) {
         if (m.index === re.lastIndex) re.lastIndex++;
         continue;
       }
@@ -71,6 +87,26 @@ function detecteSigles(texte: string): Detection[] {
       });
     }
     if (m.index === re.lastIndex) re.lastIndex++;
+  }
+  return out;
+}
+
+// R7.2-01 — parenthèses proscrites, à l'exclusion des marqueurs éditoriaux de
+// commission (« (nouveau) », « (Supprimé) ») et des millésimes de session
+// parlementaire (« (2024-2025) »), qui ne sont pas du texte normatif.
+const PAREN_EDITORIALE = /^\((nouveaux?|nouvelles?|supprimée?s?|20\d\d(?:\s*[-–]\s*20\d\d)?)\)$/i;
+
+function detecteParentheses(texte: string): Detection[] {
+  const out: Detection[] = [];
+  const re = /\([^)\n]{1,120}\)/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(texte)) !== null) {
+    if (PAREN_EDITORIALE.test(m[0])) continue;
+    out.push({
+      span: { start: m.index, end: m.index + m[0].length },
+      extrait: m[0],
+      message: "Les parenthèses sont proscrites ; les remplacer le plus souvent par des virgules.",
+    });
   }
   return out;
 }
@@ -138,9 +174,7 @@ export const TYPOGRAPHIE: Regle[] = [
       "Les parenthèses sont proscrites. Dans la plupart des cas, elles peuvent être remplacées par des virgules.",
     exempleKo: "la commission (créée en 2020) statue",
     exempleOk: "la commission, créée en 2020, statue",
-    detecteur: detecteurRegex(/\([^)\n]{1,120}\)/g, {
-      message: "Les parenthèses sont proscrites ; les remplacer le plus souvent par des virgules.",
-    }),
+    detecteur: detecteParentheses,
   }),
   regle({
     id: "R7.2-02",
