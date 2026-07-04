@@ -13,6 +13,16 @@ function classifier(texte: string): LigneClassifiee[] {
   return decouperLignes(texte).map(classifierLigne);
 }
 
+// Une ligne « M. Jean-Luc BOURGEAUX… » est la civilité « Monsieur », pas une
+// subdivision de niveau A/B/C… : le marqueur « M » y est suivi d'un nom propre
+// (mot commençant par une majuscule). On l'écarte de R5-01 pour ne pas
+// signaler les blocs de signatures d'un texte réel.
+function estCiviliteMonsieur(l: { marqueur?: string; texte: string }): boolean {
+  if (l.marqueur !== "M") return false;
+  const reste = l.texte.slice(2).trimStart(); // après « M. »
+  return /^[A-ZÀ-Ý]/.test(reste);
+}
+
 // R5-01 — paragraphe_romain | lettre_maj SANS tiret : le tiret est obligatoire.
 function detecteTiretManquant(texte: string): Detection[] {
   const out: Detection[] = [];
@@ -20,7 +30,8 @@ function detecteTiretManquant(texte: string): Detection[] {
     if (
       (l.type === "paragraphe_romain" || l.type === "lettre_maj") &&
       l.avecTiret === false &&
-      l.marqueur
+      l.marqueur &&
+      !estCiviliteMonsieur(l)
     ) {
       const start = l.start;
       const end = l.start + l.marqueur.length + 1; // couvre "I." ou "A."

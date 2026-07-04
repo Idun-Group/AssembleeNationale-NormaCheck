@@ -51,7 +51,18 @@ function detecteSigles(texte: string): Detection[] {
         continue;
       }
     }
-    if (!EXCEPTIONS_SIGLES.has(mot)) {
+    // Un sigle à proscrire apparaît dans de la prose : « la CNIL est saisie »,
+    // « un contrat CDD ». On ne le signale donc que s'il est précédé, sur sa
+    // ligne, d'un mot commençant par une minuscule (article, préposition, nom
+    // commun). Cela écarte les en-têtes, titres et blocs de signatures en
+    // capitales d'un texte réel (« ASSEMBLÉE NATIONALE », « M. Thibault BAZIN »,
+    // « EXPOSÉ DES MOTIFS », « MESDAMES, MESSIEURS ») sans manquer les vrais
+    // sigles noyés dans une phrase.
+    const debutLigne = texte.lastIndexOf("\n", m.index - 1) + 1;
+    const avant = texte.slice(debutLigne, m.index);
+    const motPrecedent = avant.match(/([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ'’-]*)[\s'’,(]*$/);
+    const enProse = !!motPrecedent && /^[a-zà-ÿ]/.test(motPrecedent[1]);
+    if (enProse && !EXCEPTIONS_SIGLES.has(mot)) {
       out.push({
         span: { start: m.index, end: m.index + mot.length },
         extrait: mot,

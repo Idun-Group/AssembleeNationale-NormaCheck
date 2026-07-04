@@ -12,6 +12,13 @@ describe("règles structurelles §5/§6", () => {
     expect(detecte("R5-01", "A. L'article 3 est abrogé.").length).toBe(1);
     expect(detecte("R5-01", "I. – L'article 2 est abrogé.")).toHaveLength(0);
   });
+  it("R5-01 : la civilité « M. » (Monsieur) n'est pas un marqueur de subdivision", () => {
+    expect(detecte("R5-01", "M. Jean-Luc BOURGEAUX, M. Thibault BAZIN,")).toHaveLength(0);
+    expect(detecte("R5-01", "M. Nicolas RAY, M. Jean-Pierre VIGIER,")).toHaveLength(0);
+    // l'exclusion ne vise que le marqueur « M » : les autres lettres restent signalées
+    expect(detecte("R5-01", "A. L'article 3 est abrogé.").length).toBe(1);
+    expect(detecte("R5-01", "B. L'article 4 est abrogé.").length).toBe(1);
+  });
   it("R5-02 : tiret indu après 1. / a.", () => {
     expect(detecte("R5-02", "1. – L'article 4 est abrogé.").length).toBe(1);
     expect(detecte("R5-02", "a. – Le premier alinéa est supprimé.").length).toBe(1);
