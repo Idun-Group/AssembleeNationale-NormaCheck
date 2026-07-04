@@ -8,7 +8,12 @@ const D = "(?![A-Za-zÀ-ÿ])"; // fin de mot
 // verbe (est/sont) dans les règles 8.3-01/02 : on exclut les ponctuations
 // fortes (; : saut de ligne) mais on garde le point, car les abréviations
 // courantes (« L. 212-3 », « art. ») contiennent un point suivi d'une espace.
-const SEPARATEUR = `[^;:\\n]`;
+// Le point n'est toléré que s'il n'est PAS une fin de phrase : on interdit
+// qu'il soit suivi d'une espace puis d'une majuscule (ce qui arrêterait le
+// gap à une frontière de phrase, évitant qu'il chevauche deux phrases,
+// par ex. « … modifié. L'article … »), tout en laissant passer les
+// abréviations comme « L. 212-3 » (point suivi d'une espace puis d'un chiffre).
+const SEPARATEUR = `(?:[^.;:\\n]|\\.(?!\\s+[A-ZÀ-Ý]))`;
 
 function regleReferences(r: Omit<Regle, "famille">): Regle {
   return { famille: "Références", ...r };
@@ -80,7 +85,7 @@ export const REFERENCES: Regle[] = [
     exempleKo: "Dans le premier alinéa de l'article 2, le mot est supprimé",
     exempleOk: "Au premier alinéa de l'article 2, le mot est supprimé",
     detecteur: detecteurRegex(
-      new RegExp(`${G}Dans (le |la |l'|les )((?:[a-zà-ÿ-]+ ){0,3})(alinéa|article|phrase)`, "g"),
+      new RegExp(`${G}Dans (le |la |l'|les )((?:[a-zà-ÿ-]+ ){0,3})(alinéas?|articles?|phrases?)`, "g"),
       {
         message:
           "Le point d'impact est introduit par « à » ou « au », et non par « dans ».",

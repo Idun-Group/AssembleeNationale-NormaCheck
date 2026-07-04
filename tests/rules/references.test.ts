@@ -26,11 +26,24 @@ describe("références et modifications", () => {
     expect(r[0].suggestion).toBe("Au premier alinéa");
     expect(detecte("R8.1-01", "Au premier alinéa de l'article 2")).toHaveLength(0);
   });
+  it("R8.1-01 conserve le pluriel du nom dans la suggestion", () => {
+    const r = detecte("R8.1-01", "Dans les articles 2 et 3");
+    expect(r.length).toBeGreaterThanOrEqual(1);
+    expect(r[0].suggestion).toBe("Aux articles");
+  });
   it("R8.3-01 : un alinéa/une phrase/des mots se SUPPRIMENT", () => {
     const r = detecte("R8.3-01", "Le deuxième alinéa est abrogé.");
     expect(r.length).toBe(1);
     expect(r[0].suggestion).toContain("supprimé");
     expect(detecte("R8.3-01", "Le deuxième alinéa est supprimé.")).toHaveLength(0);
+  });
+  it("R8.3-01 ne chevauche pas deux phrases (frontière de phrase après un point)", () => {
+    expect(
+      detecte(
+        "R8.3-01",
+        "Les mots sont ajoutés. Le chapitre est abrogé.",
+      ).every((f) => !f.extrait.includes("ajoutés")),
+    ).toBe(true);
   });
   it("R8.3-02 : un article/une division s'ABROGE", () => {
     const r = detecte("R8.3-02", "L'article L. 212-3 est supprimé.");
@@ -38,5 +51,16 @@ describe("références et modifications", () => {
     expect(r[0].suggestion).toContain("abrogé");
     expect(detecte("R8.3-02", "L'article L. 212-3 est abrogé.")).toHaveLength(0);
     expect(detecte("R8.3-02", "Les mots : « deux ans » sont supprimés.")).toHaveLength(0);
+  });
+  it("R8.3-02 traverse toujours l'abréviation « L. 212-3 »", () => {
+    expect(detecte("R8.3-02", "L'article L. 212-3 est supprimé.").length).toBeGreaterThanOrEqual(1);
+  });
+  it("R8.3-02 ne chevauche pas deux phrases (frontière de phrase après un point)", () => {
+    expect(
+      detecte(
+        "R8.3-02",
+        "Le titre est modifié. L'article est supprimé.",
+      ).every((f) => !f.extrait.includes("modifié")),
+    ).toBe(true);
   });
 });
