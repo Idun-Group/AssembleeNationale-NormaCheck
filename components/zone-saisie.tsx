@@ -1,9 +1,15 @@
 "use client";
 import { useRef, useState } from "react";
+import { ExternalLink } from "lucide-react";
+import { GithubIcon } from "@/components/github-icon";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { EXEMPLES } from "@/data/exemples";
+
+const HACKATHON =
+  "https://hackathon2026.assemblee-nationale.fr/defis/cee00932-3b4b-4c44-a338-047a9bdd2d14";
+const REPO = "https://github.com/Idun-Group/AssembleeNationale-NormaCheck";
 
 export function ZoneSaisie({ onAnalyser }: { onAnalyser: (texte: string) => void }) {
   const [texte, setTexte] = useState("");
@@ -38,6 +44,26 @@ export function ZoneSaisie({ onAnalyser }: { onAnalyser: (texte: string) => void
           Collez un texte législatif ou importez un fichier : NormaCheck détecte les règles du
           guide de légistique enfreintes et propose des corrections.
         </p>
+        <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+          <a
+            href={HACKATHON}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/5 px-3.5 py-1.5 text-sm font-medium text-primary transition hover:bg-primary/10"
+          >
+            🏛️ Hackathon 2026 de l&apos;Assemblée nationale
+            <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+          </a>
+          <a
+            href={REPO}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium transition hover:border-primary hover:text-primary"
+          >
+            <GithubIcon className="h-4 w-4" />
+            Open source · GitHub
+          </a>
+        </div>
       </div>
       <Textarea
         value={texte}
