@@ -39,7 +39,14 @@ function detecteSigles(texte: string): Detection[] {
     const estRomain = /^[IVXLCDM]+$/.test(mot);
     if (estRomain) {
       const precedent = texte.slice(0, m.index + mot.length);
-      if (DIVISION_ROMAINE_RE.test(precedent)) {
+      const precedeDivision = DIVISION_ROMAINE_RE.test(precedent);
+      // Marqueur de paragraphe/subdivision en tête de ligne (ex. « II. – »,
+      // « III. – ») : le token débute sa ligne et est immédiatement suivi
+      // d'un point. Il s'agit alors d'un numéral, pas d'un sigle.
+      const debutDeLigne = /(^|\n)\s*$/.test(texte.slice(0, m.index));
+      const suiviDePoint = texte[m.index + mot.length] === ".";
+      const estMarqueurDeLigne = debutDeLigne && suiviDePoint;
+      if (precedeDivision || estMarqueurDeLigne) {
         if (m.index === re.lastIndex) re.lastIndex++;
         continue;
       }

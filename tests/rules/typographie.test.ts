@@ -31,6 +31,18 @@ describe("typographie §7.2", () => {
     expect(detecte("R7.2-02", "le titre III du livre VIII")).toHaveLength(0);
     expect(detecte("R7.2-02", "l'article XV du code")).toHaveLength(0);
   });
+  it("R7.2-02 ignore les marqueurs de paragraphe en chiffres romains en tête de ligne", () => {
+    expect(
+      detecte("R7.2-02", "II. – Les collectivités territoriales transmettent le rapport."),
+    ).toHaveLength(0);
+    expect(detecte("R7.2-02", "III. – Le préfet statue.")).toHaveLength(0);
+    const r = detecte("R7.2-02", "transmettent.\nVIII. – Dispositions finales.");
+    expect(r.every((f) => f.extrait !== "VIII")).toBe(true);
+  });
+  it("R7.2-02 continue de détecter un sigle en chiffres romains suivi d'un point hors tête de ligne", () => {
+    expect(detecte("R7.2-02", "un contrat CDD").length).toBeGreaterThanOrEqual(1);
+    expect(detecte("R7.2-02", "un contrat CDD.").length).toBeGreaterThanOrEqual(1);
+  });
   it("R7.2-03 détecte les guillemets anglais", () => {
     expect(detecte("R7.2-03", 'les mots : "deux ans" sont supprimés').length).toBeGreaterThan(0);
   });
