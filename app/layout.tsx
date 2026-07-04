@@ -12,7 +12,6 @@ const lato = Lato({ weight: ["400", "700", "900"], subsets: ["latin"], variable:
 export const metadata: Metadata = {
   title: "NormaCheck — Analyse légistique",
   description: "Vérifiez un texte législatif contre le guide de légistique de l'Assemblée nationale",
-  icons: { icon: "/favicon.svg" },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
