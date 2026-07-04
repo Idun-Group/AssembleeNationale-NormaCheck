@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { REGLES, regleParId } from "@/lib/rules";
+import { REGLES, FAMILLES, regleParId } from "@/lib/rules";
 
 describe("catalogue de règles", () => {
   it("a des ids uniques", () => {
@@ -22,6 +22,16 @@ describe("catalogue de règles", () => {
   it("toute règle sans détecteur a une instruction llm", () => {
     for (const r of REGLES) {
       if (!r.detecteur) expect(r.llm, r.id).toBeTruthy();
+    }
+  });
+  it("toute famille de règle est répertoriée dans FAMILLES (sinon invisible au glossaire)", () => {
+    for (const r of REGLES) {
+      expect(FAMILLES, `famille « ${r.famille} » de ${r.id}`).toContain(r.famille);
+    }
+  });
+  it("le catalogue comporte les règles issues de la taxonomie PPL (tier 1 + 2)", () => {
+    for (const id of ["RT-01", "RT-02", "RT-03", "R9.2-20", "R9.2-21", "RL-06", "RL-07", "RL-08", "RL-09", "RL-10"]) {
+      expect(regleParId(id), id).toBeDefined();
     }
   });
 });

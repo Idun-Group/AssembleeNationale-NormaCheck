@@ -66,10 +66,14 @@ describe("typographie §7.2", () => {
     // mais un vrai sigle collé à côté reste détecté
     expect(detecte("R7.2-02", "un contrat CDD").length).toBeGreaterThanOrEqual(1);
   });
-  it("R7.2-01 ignore les marqueurs éditoriaux de commission", () => {
+  it("R7.2-01 ignore les marqueurs éditoriaux et procéduraux de commission", () => {
     expect(detecte("R7.2-01", "Article 2 (nouveau)")).toHaveLength(0);
     expect(detecte("R7.2-01", "Le troisième alinéa (Supprimé)")).toHaveLength(0);
     expect(detecte("R7.2-01", "Voir les numéros (2024-2025)")).toHaveLength(0);
+    expect(detecte("R7.2-01", "Proposition de loi (Procédure accélérée)")).toHaveLength(0);
+    expect(detecte("R7.2-01", "Article 3 (Conforme)")).toHaveLength(0);
+    expect(detecte("R7.2-01", "VII et VIII. – (Non modifiés)")).toHaveLength(0);
+    expect(detecte("R7.2-01", "le règlement (UE) 2016/679")).toHaveLength(0);
     // mais une vraie parenthèse rédactionnelle reste signalée
     expect(detecte("R7.2-01", "la commission (créée en 2020) statue").length).toBe(1);
   });

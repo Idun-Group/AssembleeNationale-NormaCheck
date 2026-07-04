@@ -91,10 +91,14 @@ function detecteSigles(texte: string): Detection[] {
   return out;
 }
 
-// R7.2-01 — parenthèses proscrites, à l'exclusion des marqueurs éditoriaux de
-// commission (« (nouveau) », « (Supprimé) ») et des millésimes de session
-// parlementaire (« (2024-2025) »), qui ne sont pas du texte normatif.
-const PAREN_EDITORIALE = /^\((nouveaux?|nouvelles?|supprimée?s?|20\d\d(?:\s*[-–]\s*20\d\d)?)\)$/i;
+// R7.2-01 — parenthèses proscrites, à l'exclusion des marqueurs éditoriaux/
+// procéduraux d'une « petite loi » ou d'un texte de commission (« (nouveau) »,
+// « (Supprimé) », « (Conforme) », « (Non modifié) », « (Procédure accélérée) »,
+// « (Adopté) »…), des millésimes de session (« (2024-2025) ») et de la mention
+// conventionnelle « (UE) » dans les références de règlements européens — aucun
+// de ces éléments n'est du texte normatif.
+const PAREN_EDITORIALE =
+  /^\((nouveaux?|nouvelles?|supprimée?s?|conformes?|non\s+modifiée?s?|adoptée?s?|rejetée?s?|sans\s+modifications?|(?:le\s+reste\s+)?sans\s+changement|procédure\s+accélérée|UE|CE|20\d\d(?:\s*[-–]\s*20\d\d)?)\)$/i;
 
 function detecteParentheses(texte: string): Detection[] {
   const out: Detection[] = [];

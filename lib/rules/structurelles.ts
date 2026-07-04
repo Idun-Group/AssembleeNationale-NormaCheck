@@ -93,6 +93,9 @@ function detecteMinusculeDebutEnumeration(texte: string): Detection[] {
       const espaceMatch = reste.match(/^\s+/);
       const offsetEspace = espaceMatch ? espaceMatch[0].length : 0;
       const offsetCaractere = l.marqueur.length + offsetEspace;
+      // Notation de plage « 1° à 3° (Supprimés) » : le « à » n'est pas un début
+      // de subdivision en minuscule mais un connecteur de plage. On l'écarte.
+      if (/^à\s+\d/.test(l.texte.slice(offsetCaractere))) continue;
       const car = l.texte[offsetCaractere];
       if (car && /[a-zà-ÿ]/.test(car)) {
         const start = l.start + offsetCaractere;
@@ -274,6 +277,9 @@ function detecteNumerotationDupliquee(texte: string): Detection[] {
     }
     const rang = RANG_NIVEAU[l.type];
     if (!rang || !l.marqueur) continue;
+    // Plage « 1° à 3° (Supprimés) » : ce n'est pas une subdivision numérotée
+    // isolée, on ne la compte pas comme un doublon potentiel.
+    if (/^\s*\d+°(?:\s*(?:bis|ter|quater))?\s*à\s*\d+°/.test(l.texte)) continue;
     for (const t of Object.keys(dernier)) {
       if ((RANG_NIVEAU[t] ?? 0) > rang) delete dernier[t];
     }

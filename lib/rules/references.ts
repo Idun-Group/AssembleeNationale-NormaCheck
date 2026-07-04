@@ -133,7 +133,7 @@ export const REFERENCES: Regle[] = [
     // donc « article » précédé de « de l'/du/de la/des ».
     detecteur: detecteurRegex(
       new RegExp(
-        `${G}(?<![Dd]e l['’])(?<![Dd]u )(?<![Dd]e la )(?<![Dd]es )(articles?|chapitres?|titres?|sections?|sous-sections?|livres?|parties?|\\d+°)(${SEPARATEUR}{0,40}?)(est|sont) supprimée?s?${D}`,
+        `${G}(?<![Dd]e l['’])(?<![àÀ] l['’])(?<![Dd]u )(?<![Aa]u )(?<![Dd]e la )(?<![àÀ] la )(?<![Dd]es )(?<![Aa]ux )(articles?|chapitres?|titres?|sections?|sous-sections?|livres?|parties?)(${SEPARATEUR}{0,40}?)(est|sont) supprimée?s?${D}`,
         "gi",
       ),
       {

@@ -53,6 +53,10 @@ describe("règles structurelles §5/§6", () => {
     expect(detecte("R5-03", "1° Le deuxième alinéa est supprimé ;")).toHaveLength(0);
     expect(detecte("R5-03", "– la première phrase ;")).toHaveLength(0); // tirets : minuscule OK
   });
+  it("R5-03 / R5-05 : la plage « 1° à 3° (Supprimés) » n'est pas signalée", () => {
+    expect(detecte("R5-03", "1° à 3° (Supprimés)")).toHaveLength(0); // « à » = plage, pas minuscule
+    expect(detecte("R5-05", "1° à 3° (Supprimés)")).toHaveLength(0);
+  });
   it("R5-04 : point-virgule manquant en fin d'élément d'énumération non final", () => {
     const texte = "1° Le deuxième alinéa est supprimé.\n2° Le troisième alinéa est supprimé.";
     const r = detecte("R5-04", texte);

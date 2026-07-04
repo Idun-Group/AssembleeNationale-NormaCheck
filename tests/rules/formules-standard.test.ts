@@ -24,6 +24,8 @@ const CAS: Array<[id: string, ko: string, suggestion: string | undefined, ok: st
   ["R9.2-16", "la loi de finances initiale", "loi de finances de l'année", "la loi de finances de l'année"],
   ["R9.2-17", "le garde des sceaux, ministre de la justice", "ministre de la justice", "le ministre de la justice"],
   ["R9.2-18", "l'annexe du livre Ier", "annexe au livre", "l'annexe au livre Ier"],
+  ["R9.2-20", "Le Gouvernement présente au Parlement un rapport sur l'application de la présente loi.", "remet", "Le Gouvernement remet au Parlement un rapport sur l'application de la présente loi."],
+  ["R9.2-21", "La présente loi entre en vigueur six mois après sa publication.", "promulgation", "La présente loi entre en vigueur six mois après sa promulgation."],
 ];
 
 describe("formules standard §9.2", () => {
@@ -79,6 +81,49 @@ describe("formules standard §9.2", () => {
     it("n'atteint pas « à la date de publication » ni « à la date d'entrée en vigueur »", () => {
       expect(detecte("R9.2-19", "à la date de publication de la loi")).toHaveLength(0);
       expect(detecte("R9.2-19", "à la date d'entrée en vigueur du décret")).toHaveLength(0);
+    });
+  });
+
+  describe("R9.2-20 — « présente au Parlement un rapport » → « remet »", () => {
+    it("ignore « présente au Parlement » sans rapport", () => {
+      expect(detecte("R9.2-20", "Le Gouvernement présente au Parlement ses observations.")).toHaveLength(0);
+    });
+    it("accorde la suggestion au pluriel", () => {
+      const r = detecte("R9.2-20", "Les ministres présentent au Parlement un rapport annuel.");
+      expect(r.length).toBe(1);
+      expect(r[0].suggestion).toBe("remettent");
+    });
+  });
+
+  describe("R9.2-21 — entrée en vigueur différée : promulgation, pas publication", () => {
+    it("détecte « le premier jour du sixième mois suivant la publication »", () => {
+      const r = detecte(
+        "R9.2-21",
+        "Les articles 2 et 3 entrent en vigueur le premier jour du sixième mois suivant la publication de la présente loi.",
+      );
+      expect(r.length).toBe(1);
+      expect(r[0].suggestion).toContain("promulgation");
+    });
+    it("n'atteint pas l'entrée en vigueur immédiate « à la date de sa publication »", () => {
+      expect(
+        detecte("R9.2-21", "La présente loi entre en vigueur à la date de sa publication."),
+      ).toHaveLength(0);
+    });
+    it("n'atteint pas une formule transitoire se référant à la publication", () => {
+      expect(
+        detecte(
+          "R9.2-21",
+          "Les contrats conclus avant la publication de la présente loi demeurent régis par les dispositions antérieures.",
+        ),
+      ).toHaveLength(0);
+    });
+    it("ne franchit pas une frontière de phrase", () => {
+      expect(
+        detecte(
+          "R9.2-21",
+          "La présente loi entre en vigueur immédiatement. Les modalités de publication des annonces sont fixées six mois après la promulgation.",
+        ),
+      ).toHaveLength(0);
     });
   });
 });
