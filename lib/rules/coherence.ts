@@ -1,3 +1,6 @@
+// Règles issues de la taxonomie des incohérences des propositions de loi
+// (audit légistique) : leur `ref` reprend le code de la taxonomie
+// (« §PPL-<AXE>-<FAMILLE>-<N> »), et non une section du guide de légistique.
 import type { Detection, Regle } from "./types";
 import { detecteurRegex } from "@/lib/engine/regex";
 
@@ -54,6 +57,18 @@ interface DemandeRapport {
   span: { start: number; end: number };
   extrait: string;
   phrase: string;
+  // Phrase + phrase suivante lorsque celle-ci porte encore sur le rapport
+  // (« Ce rapport est remis avant le… », « Cette obligation s'applique
+  // pendant… ») : le délai ou la durée y figurent souvent.
+  contexte: string;
+}
+
+// Phrase immédiatement après la borne `fin` (mêmes frontières que phraseAutour).
+function phraseSuivante(texte: string, fin: number): string {
+  const re = /[;:\n]|\.(?=\s+[A-ZÀ-Ý«])/g;
+  re.lastIndex = fin;
+  const m = re.exec(texte);
+  return texte.slice(fin, m ? m.index + 1 : texte.length);
 }
 
 // Récupère les demandes de rapport AU PARLEMENT (une par phrase).
@@ -66,10 +81,13 @@ function demandesRapportParlement(texte: string): DemandeRapport[] {
     const phrase = texte.slice(debut, fin);
     if (!/Parlement/.test(phrase)) continue;
     phrasesVues.add(debut);
+    const suivante = phraseSuivante(texte, fin);
+    const contexte = /rapport|obligation/i.test(suivante) ? phrase + suivante : phrase;
     out.push({
       span: { start: m.index, end: m.index + m[0].length },
       extrait: m[0],
       phrase,
+      contexte,
     });
   }
   return out;
@@ -80,7 +98,7 @@ function detecteRapportSansDelai(texte: string): Detection[] {
   const out: Detection[] = [];
   for (const d of demandesRapportParlement(texte)) {
     if (RE_PERIODICITE.test(d.phrase)) continue; // périodique : affaire de RT-03
-    if (RE_DELAI.test(d.phrase)) continue; // délai présent : conforme
+    if (RE_DELAI.test(d.contexte)) continue; // délai présent : conforme
     out.push({
       span: d.span,
       extrait: d.extrait,
@@ -96,7 +114,7 @@ function detecteRapportPeriodiqueSansDuree(texte: string): Detection[] {
   const out: Detection[] = [];
   for (const d of demandesRapportParlement(texte)) {
     if (!RE_PERIODICITE.test(d.phrase)) continue;
-    if (RE_DUREE.test(d.phrase)) continue; // durée bornée : conforme
+    if (RE_DUREE.test(d.contexte)) continue; // durée bornée : conforme
     out.push({
       span: d.span,
       extrait: d.extrait,

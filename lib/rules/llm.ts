@@ -66,6 +66,10 @@ export const REGLES_LLM: Regle[] = [
     exempleOk: "Le chapitre IV du titre II du livre V est complété par un article L. 524-8 ainsi rédigé :",
     llm: "Pour chaque opération de modification (remplacement, insertion, complément, ajout), déterminer où se situe le point d'insertion par rapport à la structure existante (début, milieu, fin) et le type de remplacement (intégral, par un élément différent ou plusieurs éléments) puis vérifier que la formule employée correspond : « est ainsi rédigé » pour un remplacement intégral ou le remplacement du début/de la fin d'un article, alinéa ou phrase ; « est remplacé par » quand un élément est remplacé par plusieurs autres ou un élément différent ; « il est ajouté »/« au début » pour un ajout tout au début d'une structure ; « il est inséré » pour un nouvel élément au milieu du texte ; « est complété par » pour un complément ou un ajout à la fin d'une structure (notamment un nouvel article placé en fin de division, qui ne doit pas être présenté comme une insertion après l'article précédent). Signaler toute formule inadaptée à la position réelle de la modification, en citant le passage exact.",
   },
+  // Les règles RL-06 à RL-10 (comme RT-01 à RT-03 dans coherence.ts) sont
+  // issues de la taxonomie des incohérences des propositions de loi, et non
+  // du guide de légistique : leur `ref` reprend volontairement le code de la
+  // taxonomie (« §PPL-<AXE>-<FAMILLE>-<N> ») plutôt qu'une section du guide.
   {
     id: "RL-06",
     famille: "Cohérence du dispositif",

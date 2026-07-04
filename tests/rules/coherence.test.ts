@@ -97,6 +97,14 @@ describe("RT-02 — rapport au Parlement sans délai de remise (PPL-MAT-NOR-018)
       detecte("RT-02", "Le rapport mentionné à l'article 2 est transmis au Parlement."),
     ).toHaveLength(0);
   });
+  it("ignore la demande dont le délai figure dans la phrase suivante", () => {
+    expect(
+      detecte(
+        "RT-02",
+        "Le Gouvernement remet au Parlement un rapport sur les conséquences du dispositif. Ce rapport est remis avant le 31 décembre 2027.",
+      ),
+    ).toHaveLength(0);
+  });
 });
 
 describe("RT-03 — rapport périodique sans durée : caducité (PPL-MAT-NOR-031)", () => {
@@ -135,6 +143,14 @@ describe("RT-03 — rapport périodique sans durée : caducité (PPL-MAT-NOR-031
   it("ignore un rapport périodique qui n'est pas destiné au Parlement", () => {
     expect(
       detecte("RT-03", "Chaque année, l'agence publie un rapport d'activité."),
+    ).toHaveLength(0);
+  });
+  it("ignore le rapport périodique dont la durée figure dans la phrase suivante", () => {
+    expect(
+      detecte(
+        "RT-03",
+        "Le Gouvernement remet chaque année au Parlement un rapport sur la mise en œuvre du dispositif. Cette obligation s'applique pendant les cinq années suivant la promulgation de la présente loi.",
+      ),
     ).toHaveLength(0);
   });
 });
