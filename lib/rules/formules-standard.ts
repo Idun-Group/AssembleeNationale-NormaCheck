@@ -278,6 +278,44 @@ export const FORMULES_STANDARD: Regle[] = [
     }),
   }),
   regle({
+    id: "R9.2-20",
+    ref: "§9.2",
+    severite: "enfreinte",
+    titre: "« présente au Parlement un rapport » → « remet au Parlement un rapport »",
+    explication:
+      "Le guide de légistique retient le verbe « remettre » pour la remise d'un rapport du Gouvernement au Parlement : « le Gouvernement remet au Parlement un rapport », et non « présente ».",
+    exempleKo: "Le Gouvernement présente au Parlement un rapport sur l'application de la présente loi.",
+    exempleOk: "Le Gouvernement remet au Parlement un rapport sur l'application de la présente loi.",
+    detecteur: detecteurRegex(
+      new RegExp(`${G}présente(nt)?(?=\\s+au Parlement(?:[^.;:\\n]|\\.(?!\\s+[A-ZÀ-Ý])){0,60}?rapport)`, "g"),
+      {
+        message: "On écrit « remet au Parlement un rapport », et non « présente ».",
+        suggestion: (m) => (m[1] ? "remettent" : "remet"),
+      },
+    ),
+  }),
+  regle({
+    id: "R9.2-21",
+    ref: "§9.2",
+    severite: "a_revoir",
+    titre: "Entrée en vigueur différée : « promulgation » plutôt que « publication »",
+    explication:
+      "Pour différer l'entrée en vigueur d'une loi (« six mois après… »), on se réfère à sa promulgation, dont la date figure de manière stable dans l'intitulé de la loi, et non à sa publication. À l'inverse, les formules transitoires se réfèrent à la publication — d'où une vérification du contexte.",
+    exempleKo: "La présente loi entre en vigueur six mois après sa publication.",
+    exempleOk: "La présente loi entre en vigueur six mois après sa promulgation.",
+    detecteur: detecteurRegex(
+      new RegExp(
+        `${G}entre(?:nt)? en vigueur(?:[^.;:\\n]|\\.(?!\\s+[A-ZÀ-Ý])){0,50}?(?:mois|jours?|ans?|années?)(?:[^.;:\\n]|\\.(?!\\s+[A-ZÀ-Ý])){0,30}?(?:suivant|après|qui suivent|à compter)(?:[^.;:\\n]|\\.(?!\\s+[A-ZÀ-Ý])){0,30}?publication${D}`,
+        "g",
+      ),
+      {
+        message:
+          "Pour une entrée en vigueur différée, on se réfère à la promulgation de la loi (date stable, figurant dans son intitulé), non à sa publication.",
+        suggestion: (m) => m[0].replace(/publication$/, "promulgation"),
+      },
+    ),
+  }),
+  regle({
     id: "R9.2-19",
     ref: "§9.2",
     severite: "suggestion",
