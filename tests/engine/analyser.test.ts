@@ -23,3 +23,26 @@ describe("analyser", () => {
     expect(analyser("Le maire transmet la liste au représentant de l'État dans le département.")).toEqual([]);
   });
 });
+
+describe("analyser — frontière exposé des motifs / dispositif", () => {
+  const texte = [
+    "EXPOSÉ DES MOTIFS",
+    "",
+    "Le présent texte vise à protéger l'environnement (et la biodiversité).",
+    "",
+    "Article 1er",
+    "",
+    "L'article L. 212-3 du code de l'environnement est supprimé.",
+  ].join("\n");
+
+  it("écarte les findings situés dans l'exposé des motifs", () => {
+    const ids = analyser(texte).map((f) => f.ruleId);
+    expect(ids).toContain("R8.3-02"); // faute du dispositif : conservée
+    expect(ids).not.toContain("R7.2-01"); // parenthèse de l'exposé : écartée
+  });
+
+  it("ne gate rien en l'absence d'exposé des motifs", () => {
+    const sansExpose = "Le texte vise à protéger (et la biodiversité).";
+    expect(analyser(sansExpose).map((f) => f.ruleId)).toContain("R7.2-01");
+  });
+});

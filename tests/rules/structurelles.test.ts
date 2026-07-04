@@ -19,6 +19,30 @@ describe("règles structurelles §5/§6", () => {
     expect(detecte("R5-01", "A. L'article 3 est abrogé.").length).toBe(1);
     expect(detecte("R5-01", "B. L'article 4 est abrogé.").length).toBe(1);
   });
+  it("R5-01 : « L. »/« R. »/« D. » suivi d'un numéro est une référence d'article, pas une subdivision", () => {
+    // cas typique d'un PDF qui coupe « …de l'article L. 228 » en fin de ligne
+    expect(detecte("R5-01", "L. 228 du code électoral est abrogé.")).toHaveLength(0);
+    expect(detecte("R5-01", "R. 512-1 est ainsi rédigé :")).toHaveLength(0);
+    expect(detecte("R5-01", "D. 4 du code de la route.")).toHaveLength(0);
+    // une vraie subdivision « A. » reste signalée
+    expect(detecte("R5-01", "A. L'article 3 est abrogé.").length).toBe(1);
+  });
+  it("R5-05 : numérotation en double dans une série contiguë", () => {
+    const texte = "I. – Premier.\nII. – Deuxième.\nII. – Encore deux.\nIV. – Quatrième.";
+    const r = detecte("R5-05", texte);
+    expect(r.length).toBe(1);
+    expect(r[0].extrait).toBe("II");
+  });
+  it("R5-05 : deux énumérations séparées (ligne vide ou article) ne sont pas des doublons", () => {
+    // restart d'énumération après une ligne vide
+    expect(detecte("R5-05", "1° A ;\n2° B.\n\n1° C ;\n2° D.")).toHaveLength(0);
+    // restart après un nouvel article
+    expect(
+      detecte("R5-05", "Article 1er\n1° A ;\n2° B.\nArticle 2\n1° C ;\n2° D."),
+    ).toHaveLength(0);
+    // une séquence saine ne déclenche rien
+    expect(detecte("R5-05", "1° A ;\n2° B ;\n3° C.")).toHaveLength(0);
+  });
   it("R5-02 : tiret indu après 1. / a.", () => {
     expect(detecte("R5-02", "1. – L'article 4 est abrogé.").length).toBe(1);
     expect(detecte("R5-02", "a. – Le premier alinéa est supprimé.").length).toBe(1);
@@ -44,6 +68,17 @@ describe("règles structurelles §5/§6", () => {
     const r = detecte("R6-01", texte);
     expect(r.length).toBe(1);
     expect(r[0].extrait).toContain("Le second alinéa");
+  });
+  it("R6-01 : les instructions imbriquées (« 1° … », lignes en « : ») ne sont pas des alinéas rédigés", () => {
+    const texte = [
+      "L'article L. 3 du code est ainsi modifié :",
+      "1° Le premier alinéa est complété par les mots : « et suivants » ;",
+      "2° Il est ajouté un alinéa ainsi rédigé :",
+      "« Le nouvel alinéa est applicable. »",
+    ].join("\n");
+    // « 1° … » et « 2° … » sont des instructions de modification, pas des
+    // alinéas rédigés : aucun faux R6-01 ne doit être produit.
+    expect(detecte("R6-01", texte)).toHaveLength(0);
   });
   it("R6-02 : guillemet fermant avant la fin du bloc rédigé", () => {
     const texte = [

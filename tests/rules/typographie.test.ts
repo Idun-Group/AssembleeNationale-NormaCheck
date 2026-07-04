@@ -55,6 +55,24 @@ describe("typographie §7.2", () => {
     // mais un vrai sigle en prose reste signalé
     expect(detecte("R7.2-02", "le rapport de la CNIL et de l'INSEE").length).toBeGreaterThanOrEqual(1);
   });
+  it("R7.2-02 ignore les renvois de subdivision en chiffres romains", () => {
+    expect(detecte("R7.2-02", "l'obligation prévue au II ne peut être désactivée")).toHaveLength(0);
+    expect(detecte("R7.2-02", "dans les conditions du III du même article")).toHaveLength(0);
+    expect(detecte("R7.2-02", "les dispositions des I à III sont applicables")).toHaveLength(0);
+    expect(detecte("R7.2-02", "au sens du présent IV")).toHaveLength(0);
+  });
+  it("R7.2-02 ignore les préfixes d'article codifiés (« LP. 112 »)", () => {
+    expect(detecte("R7.2-02", "l'article LP. 112-3 du code des impôts de la Polynésie")).toHaveLength(0);
+    // mais un vrai sigle collé à côté reste détecté
+    expect(detecte("R7.2-02", "un contrat CDD").length).toBeGreaterThanOrEqual(1);
+  });
+  it("R7.2-01 ignore les marqueurs éditoriaux de commission", () => {
+    expect(detecte("R7.2-01", "Article 2 (nouveau)")).toHaveLength(0);
+    expect(detecte("R7.2-01", "Le troisième alinéa (Supprimé)")).toHaveLength(0);
+    expect(detecte("R7.2-01", "Voir les numéros (2024-2025)")).toHaveLength(0);
+    // mais une vraie parenthèse rédactionnelle reste signalée
+    expect(detecte("R7.2-01", "la commission (créée en 2020) statue").length).toBe(1);
+  });
   it("R7.2-03 détecte les guillemets anglais", () => {
     expect(detecte("R7.2-03", 'les mots : "deux ans" sont supprimés').length).toBeGreaterThan(0);
   });

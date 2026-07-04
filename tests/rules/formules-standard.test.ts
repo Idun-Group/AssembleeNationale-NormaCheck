@@ -66,4 +66,19 @@ describe("formules standard §9.2", () => {
       expect(detecte("R9.2-03", "le montant maximum de l'aide").length).toBeGreaterThanOrEqual(1);
     });
   });
+
+  describe("R9.2-19 — entrée en vigueur", () => {
+    it("signale « à la date du <date> » et suggère « à compter du »", () => {
+      const r = detecte("R9.2-19", "La présente loi entre en vigueur à la date du 1er janvier 2027.");
+      expect(r.length).toBe(1);
+      expect(r[0].suggestion).toBe("à compter du ");
+    });
+    it("signale aussi « à la date <date> » sans « du »", () => {
+      expect(detecte("R9.2-19", "applicable à la date 15 mars 2026").length).toBe(1);
+    });
+    it("n'atteint pas « à la date de publication » ni « à la date d'entrée en vigueur »", () => {
+      expect(detecte("R9.2-19", "à la date de publication de la loi")).toHaveLength(0);
+      expect(detecte("R9.2-19", "à la date d'entrée en vigueur du décret")).toHaveLength(0);
+    });
+  });
 });

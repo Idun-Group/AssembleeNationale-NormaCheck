@@ -277,4 +277,23 @@ export const FORMULES_STANDARD: Regle[] = [
       suggestion: "annexe au livre",
     }),
   }),
+  regle({
+    id: "R9.2-19",
+    ref: "§9.2",
+    severite: "suggestion",
+    titre: "Entrée en vigueur : « à compter du » plutôt que « à la date du »",
+    explication:
+      "Pour fixer une entrée en vigueur à une date déterminée, le guide de légistique privilégie la formule « à compter du » à « à la date (du) ».",
+    exempleKo: "La présente loi entre en vigueur à la date du 1er janvier 2027.",
+    exempleOk: "La présente loi entre en vigueur à compter du 1er janvier 2027.",
+    // On ne signale que devant une date concrète (jour + mois) : « à la date de
+    // publication », « à la date d'entrée en vigueur » restent valides.
+    detecteur: detecteurRegex(
+      /à\s+la\s+date\s+(?:du\s+)?(?=(?:1er|[0-3]?\d)\s+[a-zà-ÿ])/gi,
+      {
+        message: "Pour une entrée en vigueur à date fixe, préférer « à compter du ».",
+        suggestion: "à compter du ",
+      },
+    ),
+  }),
 ];
