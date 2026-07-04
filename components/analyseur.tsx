@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import type { Finding } from "@/lib/rules/types";
 import { analyser } from "@/lib/engine/analyser";
 import { fusionner, ancrer } from "@/lib/engine/fusion";
@@ -13,6 +13,9 @@ export function Analyseur() {
   const [enResultat, setEnResultat] = useState(false);
   const [findingsLlm, setFindingsLlm] = useState<Finding[]>([]);
   const [statutLlm, setStatutLlm] = useState<StatutLlm>("inactif");
+  // Ticket de requête : une réponse /api/analyze-llm plus lente qu'une analyse
+  // plus récente ne doit pas écraser l'état courant (course entre requêtes).
+  const ticketRef = useRef(0);
 
   // Le déterministe se recalcule à chaque frappe/correction ; les findings LLM
   // sont ré-ancrés par leur extrait (citation) sur le texte courant.
@@ -24,6 +27,7 @@ export function Analyseur() {
   }, [texte, findingsLlm, enResultat]);
 
   async function lancerAnalyse(t: string) {
+    const ticket = ++ticketRef.current;
     setTexte(t);
     setEnResultat(true);
     setStatutLlm("en_cours");
@@ -35,15 +39,18 @@ export function Analyseur() {
       });
       if (!res.ok) throw new Error();
       const data = (await res.json()) as { findings: Finding[] };
+      if (ticket !== ticketRef.current) return; // réponse obsolète : une analyse plus récente a démarré
       setFindingsLlm(data.findings);
       setStatutLlm("ok");
     } catch {
+      if (ticket !== ticketRef.current) return;
       setFindingsLlm([]);
       setStatutLlm("indisponible");
     }
   }
 
   function nouvelleAnalyse() {
+    ticketRef.current++;
     setEnResultat(false);
     setFindingsLlm([]);
     setStatutLlm("inactif");

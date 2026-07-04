@@ -32,6 +32,9 @@ export async function POST(req: NextRequest) {
       const parser = new PDFParse({ data: buffer });
       try {
         texte = (await parser.getText()).text;
+        // pdf-parse v2 insère des séparateurs de page ("-- 1 of 1 --") dans le
+        // texte extrait : on les retire avant normalisation, propre à ce format.
+        texte = texte.replace(/^\s*-{2,}\s*\d+\s+of\s+\d+\s*-{2,}\s*$/gm, "");
       } finally {
         await parser.destroy();
       }

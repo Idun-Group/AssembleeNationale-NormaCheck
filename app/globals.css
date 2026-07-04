@@ -119,3 +119,16 @@
     @apply font-sans;
   }
 }
+
+/* Apparition subtile des surlignages : le fond part de transparent pour
+   rejoindre la couleur de sévérité déjà posée en classe utilitaire (bg-sev-*),
+   sans jamais l'écraser après la fin de l'animation. */
+@keyframes nc-apparaitre {
+  from {
+    background-color: transparent;
+  }
+}
+
+mark {
+  animation: nc-apparaitre 500ms ease;
+}
