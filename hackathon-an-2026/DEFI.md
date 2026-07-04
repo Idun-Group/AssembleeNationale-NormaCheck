@@ -84,10 +84,10 @@ Cochez les ressources utilisées en remplaçant `[ ]` par `[x]`.
 - [Interface principale](images/cover.jpg)
 
 ### Documents
-- [Vérification de Conformité Législative (PDF)](../Vérification%20de%20Conformité%20Législative.pdf)
+- [Présentation NormaCheck (PDF)](docs/presentation-normacheck.pdf)
 
 ### URL de démonstration
 https://normacheck.idun-group.com/
 
 ### Diapositives de présentation
-[Vérification de Conformité Législative (PDF)](../Vérification%20de%20Conformité%20Législative.pdf)
+[Diapositives de présentation — NormaCheck (PDF)](docs/presentation-normacheck.pdf)
