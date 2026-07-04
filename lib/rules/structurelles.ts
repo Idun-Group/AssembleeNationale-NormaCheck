@@ -124,9 +124,11 @@ function detecteSansPointVirgule(texte: string): Detection[] {
   return out;
 }
 
-// Regroupe les blocs rédigés : après une ligne chapeau_redige, les lignes non
-// vides suivantes appartiennent au bloc jusqu'à (incluse) celle dont le texte
-// se termine par « » » (éventuellement suivi de ponctuation).
+// Regroupe les blocs rédigés : après une ligne chapeau_redige, les lignes
+// suivantes appartiennent au bloc jusqu'à une ligne vide, un nouveau
+// chapeau_redige, ou une fermeture par « » » qui n'est pas immédiatement
+// suivie (sans saut de ligne vide) d'une nouvelle ligne commençant par «
+// (auquel cas la fermeture était prématurée : cf. R6-02, le bloc continue).
 interface BlocRedige {
   chapeau: number;
   lignes: number[];
@@ -134,42 +136,39 @@ interface BlocRedige {
 
 const FIN_BLOC_RE = /»[\s;:.,]*$/;
 
-// Une ligne continue le bloc rédigé si elle commence par « (guillemet ouvrant),
-// ce qui est le comportement attendu même si la ligne précédente s'est
-// (fautivement) refermée par » avant la fin réelle du bloc (cf. R6-02).
-function continueLeBloc(l: LigneClassifiee): boolean {
-  return l.texte.trimStart().startsWith("«");
-}
-
 function blocsRediges(lignes: LigneClassifiee[]): BlocRedige[] {
   const blocs: BlocRedige[] = [];
-  let i = 0;
-  while (i < lignes.length) {
-    if (lignes[i].type === "chapeau_redige") {
-      const chapeau = i;
-      const lignesBloc: number[] = [];
-      let j = i + 1;
-      while (j < lignes.length) {
-        if (lignes[j].texte.trim() === "") {
+  for (let i = 0; i < lignes.length; i++) {
+    if (lignes[i].type !== "chapeau_redige") continue;
+    const chapeau = i;
+    const lignesBloc: number[] = [];
+    let j = i + 1;
+    while (j < lignes.length) {
+      const courante = lignes[j];
+      if (courante.texte.trim() === "") break; // ligne vide : le bloc s'arrête (non consommée)
+      if (courante.type === "chapeau_redige") break; // nouveau bloc : le bloc s'arrête (non consommée)
+
+      lignesBloc.push(j);
+
+      const finSansEspaces = courante.texte.replace(/\s+$/, "");
+      if (FIN_BLOC_RE.test(finSansEspaces)) {
+        // Fermeture par » : regarde la ligne immédiatement suivante (sans
+        // sauter les lignes vides) pour savoir si elle continue le bloc.
+        const suivante = lignes[j + 1];
+        const continue_ =
+          suivante !== undefined &&
+          suivante.texte.trim() !== "" &&
+          suivante.type !== "chapeau_redige" &&
+          suivante.texte.trimStart().startsWith("«");
+        if (continue_) {
           j++;
           continue;
         }
-        // Si ce n'est pas la première ligne du bloc et qu'elle ne commence
-        // pas par « alors que la ligne précédente était déjà refermée par
-        // », le bloc est réellement terminé : on s'arrête avant.
-        if (lignesBloc.length > 0) {
-          const precedente = lignes[lignesBloc[lignesBloc.length - 1]];
-          const precedenteFermee = FIN_BLOC_RE.test(precedente.texte.trimEnd());
-          if (precedenteFermee && !continueLeBloc(lignes[j])) break;
-        }
-        lignesBloc.push(j);
-        j++;
+        break; // fermeture naturelle
       }
-      blocs.push({ chapeau, lignes: lignesBloc });
-      i = j;
-    } else {
-      i++;
+      j++;
     }
+    blocs.push({ chapeau, lignes: lignesBloc });
   }
   return blocs;
 }

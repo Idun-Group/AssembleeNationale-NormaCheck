@@ -52,4 +52,34 @@ describe("règles structurelles §5/§6", () => {
     ].join("\n");
     expect(detecte("R6-02", ok)).toHaveLength(0);
   });
+
+  it("R6-01 : deux blocs rédigés successifs, le second chapeau n'est pas avalé", () => {
+    const deuxBlocs = [
+      "L'article 2 est complété par un alinéa ainsi rédigé :",
+      "« Le premier alinéa nouveau.",
+      "L'article 3 est complété par un alinéa ainsi rédigé :",
+      "« Le second alinéa nouveau. »",
+    ].join("\n");
+    const r = detecte("R6-01", deuxBlocs);
+    expect(r.some((d) => d.extrait.includes("ainsi rédigé"))).toBe(false);
+  });
+
+  it("R6-02 : bloc clos, ligne vide, puis citation isolée non rattachée", () => {
+    const blocPuisCitation = [
+      "L'article 4 est complété par un alinéa ainsi rédigé :",
+      "« Le nouvel alinéa est applicable. »",
+      "",
+      "« Une citation isolée dans un paragraphe distinct. »",
+    ].join("\n");
+    expect(detecte("R6-02", blocPuisCitation)).toHaveLength(0);
+  });
+
+  it("R6-01 : bloc clos suivi d'une ligne non citée hors bloc", () => {
+    const blocPuisTexte = [
+      "L'article 5 est complété par un alinéa ainsi rédigé :",
+      "« Le nouvel alinéa. »",
+      "Cette disposition entre en vigueur en 2027.",
+    ].join("\n");
+    expect(detecte("R6-01", blocPuisTexte)).toHaveLength(0);
+  });
 });
