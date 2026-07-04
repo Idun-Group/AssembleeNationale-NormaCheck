@@ -35,7 +35,7 @@ les ~50 règles utilisées, classées par famille — chaque surlignage renvoie 
 
 **Déroulé d'usage :** Saisie → Résultat (texte annoté, surlignages cliquables par
 sévérité 🔴 enfreinte · 🟠 à revoir · 🔵 suggestion, score en direct, corrections, export)
-→ Glossaire. Le projet est **open source**, testé (135 tests Vitest + parcours Playwright)
+→ Glossaire. Le projet est **open source**, testé (197 tests Vitest + parcours Playwright)
 et déployé en ligne.
 
 ### Image principale

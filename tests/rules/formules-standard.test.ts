@@ -47,6 +47,11 @@ describe("formules standard §9.2", () => {
       .toBe("représentant de l'État dans le département");
     expect(detecte("R9.2-13", "la préfecture")).toHaveLength(0);
   });
+  it("R9.2-11 détecte « Le ou les » en début de phrase (majuscule)", () => {
+    const r = detecte("R9.2-11", "Le ou les dirigeants tiennent les pièces à disposition.");
+    expect(r.length).toBe(1);
+    expect(r[0].suggestion).toBe("Les");
+  });
   it("R9.2-13 ignore « sous-préfet »", () => {
     expect(detecte("R9.2-13", "le sous-préfet de l'arrondissement")).toHaveLength(0);
   });

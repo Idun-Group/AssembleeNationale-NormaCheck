@@ -171,9 +171,9 @@ export const FORMULES_STANDARD: Regle[] = [
       "La formule « le ou les » est redondante en français juridique : le pluriel « les » couvre déjà le cas d'un ou plusieurs éléments.",
     exempleKo: "le ou les représentants",
     exempleOk: "les représentants",
-    detecteur: detecteurRegex(new RegExp(`${G}le ou les${D}`, "g"), {
+    detecteur: detecteurRegex(new RegExp(`${G}[Ll]e ou les${D}`, "g"), {
       message: "« le ou les » est redondant : on écrit simplement « les ».",
-      suggestion: "les",
+      suggestion: (m) => (m[0].startsWith("L") ? "Les" : "les"),
     }),
   }),
   regle({

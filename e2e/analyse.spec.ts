@@ -29,6 +29,19 @@ test("flux complet : exemple -> analyse -> correction -> score", async ({ page }
     .toBeGreaterThan(scoreAvant);
 });
 
+test("exemple PPL complète : les règles de cohérence se déclenchent", async ({ page }) => {
+  await page.goto("/");
+  await page.getByTestId("exemple-ppl").click();
+
+  await expect(page.getByTestId("texte-annote")).toBeVisible();
+  const surlignages = page.getByTestId("surlignage");
+  await expect(surlignages.first()).toBeVisible();
+  // 9 findings déterministes attendus (injonction, rapports, formules…)
+  expect(await surlignages.count()).toBeGreaterThanOrEqual(9);
+  const score = Number(await page.getByTestId("jauge-score").getAttribute("data-score"));
+  expect(score).toBeLessThan(100);
+});
+
 test("le glossaire liste les règles et la recherche filtre", async ({ page }) => {
   await page.goto("/glossaire");
   await expect(page.locator("[id='R9.2-01']")).toBeVisible();
