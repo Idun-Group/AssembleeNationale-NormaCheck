@@ -57,7 +57,8 @@ export function ZoneSaisie({ onAnalyser }: { onAnalyser: (texte: string) => void
           {chargement ? "Extraction…" : "Importer un fichier"}
         </Button>
         <input ref={inputRef} type="file" accept=".docx,.pdf,.txt" className="hidden"
-          onChange={(e) => e.target.files?.[0] && importer(e.target.files[0])} />
+          onChange={(e) => e.target.files?.[0] && importer(e.target.files[0])}
+          onClick={(e) => { (e.target as HTMLInputElement).value = ""; }} />
       </div>
       <div className="grid gap-4 pt-4 sm:grid-cols-3">
         {EXEMPLES.map((ex) => (

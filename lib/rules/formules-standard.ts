@@ -199,7 +199,7 @@ export const FORMULES_STANDARD: Regle[] = [
       "Dans un texte normatif, on désigne le préfet par la formule « représentant de l'État dans le département ». Le mot « préfet » peut cependant rester légitime hors contexte strictement normatif, d'où une vérification au cas par cas.",
     exempleKo: "le préfet du département",
     exempleOk: "le représentant de l'État dans le département",
-    detecteur: detecteurRegex(new RegExp(`${G}préfet(s?)${D}`, "g"), {
+    detecteur: detecteurRegex(new RegExp(`(?<![A-Za-zÀ-ÿ-])préfet(s?)${D}`, "g"), {
       message: "On préfère « représentant de l'État dans le département » à « préfet ».",
       suggestion: (m) =>
         m[1] === "s"

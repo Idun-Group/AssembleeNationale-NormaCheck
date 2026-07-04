@@ -45,6 +45,12 @@ describe("formules standard §9.2", () => {
       .toBe("représentant de l'État dans le département");
     expect(detecte("R9.2-13", "la préfecture")).toHaveLength(0);
   });
+  it("R9.2-13 ignore « sous-préfet »", () => {
+    expect(detecte("R9.2-13", "le sous-préfet de l'arrondissement")).toHaveLength(0);
+  });
+  it("R9.2-13 continue de détecter « le préfet » seul", () => {
+    expect(detecte("R9.2-13", "le préfet du département")).toHaveLength(1);
+  });
 
   describe("R9.2-03 ne doit pas capturer l'idiome « au maximum »", () => {
     it("ignore « au maximum » (idiome, nom correct)", () => {

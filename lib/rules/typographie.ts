@@ -176,7 +176,7 @@ export const TYPOGRAPHIE: Regle[] = [
       "Les nombres ne comportent jamais de point : les milliers sont séparés par une espace, pas par un point.",
     exempleKo: "1.205.632 €",
     exempleOk: "1 205 632 €",
-    detecteur: detecteurRegex(/\d{1,3}(?:\.\d{3})+(?!\d)/g, {
+    detecteur: detecteurRegex(/(?<![\d.])\d{1,3}(?:\.\d{3})+(?!\d)/g, {
       message: "Les nombres ne comportent jamais de point ; séparer les milliers par une espace.",
       suggestion: (m) => m[0].replaceAll(".", " "),
     }),

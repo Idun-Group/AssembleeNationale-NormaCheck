@@ -69,6 +69,12 @@ describe("typographie §7.2", () => {
     expect(r[0].suggestion).toBe("1 205 632");
     expect(detecte("R7.2-05", "un montant de 1 205 632 €")).toHaveLength(0);
   });
+  it("R7.2-05 ignore les références de code (lettre.point)", () => {
+    expect(detecte("R7.2-05", "l'article L.123.456 du code")).toHaveLength(0);
+  });
+  it("R7.2-05 ignore les références de code (lettre.point, suite)", () => {
+    expect(detecte("R7.2-05", "aux articles R.512.46 et suivants")).toHaveLength(0);
+  });
   it("R7.2-06 signale les nombres en chiffres pour les durées/personnes", () => {
     expect(detecte("R7.2-06", "une peine de 3 ans").length).toBe(1);
     expect(detecte("R7.2-06", "100 000 habitants")).toHaveLength(0); // exception habitants
